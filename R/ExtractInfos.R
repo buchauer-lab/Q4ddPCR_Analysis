@@ -7,7 +7,8 @@ library(tidyr)
 library(dplyr)
 
 # read files
-read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel){
+read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel,
+                       rm_zero_channels = FALSE){
   
   # check if files exist
   if(!file.exists(csv_file)){
@@ -42,6 +43,7 @@ read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel)
   
   # make Concentration col numeric
   in_xlsx$`Conc(copies/µL)` <- as.numeric(in_xlsx$`Conc(copies/µL)`)
+  in_xlsx$`Conc(copies/µL)`[is.na(in_xlsx$`Conc(copies/µL)`)] <- 0
   
   #remove wells with zero channel
   if(any(!(remove_channel %in% in_xlsx$Well))){
@@ -61,6 +63,18 @@ read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel)
   # add threshold and number of total positives
   dtQC$Threshold <- dtQC$`Accepted Droplets`/3
   dtQC$`Total positives` <- apply(dtQC[,grep("\\+", names(dtQC), value=T)], 1, sum)
+  
+  # remove wells that have concentration zero for at least one well
+  if(rm_zero_channels){
+    zero_ch <- unique(dtQC$Well[(dtQC$`Conc(copies/µL)` == 0) & 
+                                  !(dtQC$`Sample description 1` %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser"))])
+    if(length(zero_ch) > 0){
+      warning(paste0("These wells will be removed, as they have at least one channel with concentration value 0: ",
+                     paste(zero_ch, collapse = ", ")))
+    }
+    dtQC <- dtQC[!(dtQC$Well %in% zero_ch),]
+    in_csv <- in_csv[!(in_csv$Well %in% zero_ch),]
+  }
   
   return(list(in_csv, dtQC))
 }
@@ -98,8 +112,10 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
   if(custom_dilution_factor){
     # check if specified dilution factors match table
     if(any(!(tab1$`Sample description 1` %in% names(dilution_factor)))){
-      stop("Dilution factor must be specified for all possible sample 
-           descriptions. Please match the names.")
+      warning("Assuming 1 as dilution factor if not specified otherwise.")
+      d <- rep(1, length(dilution_factor))
+      d[names(dilution_factor)] <- dilution_factor
+      dilution_factor <- d
     }
     tab1$`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)` <-
       dilution_factor[tab1$`Sample description 1`] * tab1$`Conc(copies/µL)` 
@@ -162,7 +178,7 @@ transform_digits <- function(combination, marker) {
   
   # Split combination into individual digits
   digits <- strsplit(combination, "_")[[1]]
-  
+
   # Initialize empty vector to store object names
   positive_objects <- character(0)
   
@@ -239,17 +255,28 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
   if(any(tab$`Accepted Droplets` < 7500)){
     warning(paste0("Removed well: ", 
                    unique(tab$`Well`[tab$`Accepted Droplets` < 7500]),
-                   " Less than 7500 droplets. "))
+                   ". Less than 7500 droplets. "))
+    
     tab <- tab[tab$`Accepted Droplets` >= 7500,]
+    
+    # check if any Well left
+    if(nrow(tab) == 0){
+      return(list("", "empty"))
+    }
   }
   
   # change names (from 1_0_0_0 to Gag+ etc)
   markers <- match_channel_gene(tab, ch_dye, num_target)
   names(tab)[grepl("_", names(tab))] <- unname(sapply(grep("_", names(tab), value=T), transform_digits, markers))
   
+  # do not compute values for H2O Wells
+  if(unique(tab$`Sample description 1`) %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser")){
+    return(list(tab, "h2o"))
+  }
+  
   # add mean concentration and mean unsheared
-  tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- mean_conc_household[sub("-.*", "", unique(tab$`Sample description 1`)) ]
-  tab$`Mean unsheared` <- mean_unsheared[sub("-.*", "", unique(tab$`Sample description 1`))]
+  tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- mean_conc_household[unique(tab$`Sample description 1`)]
+  tab$`Mean unsheared` <- mean_unsheared[unique(tab$`Sample description 1`)]
   
   # compute Target per million cells
   tab <- tab %>%
@@ -268,8 +295,13 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
   tar_pos <- unlist(apply(tab, 1, sum_target_positive_values))
   all_pos <- tab[, all_pos_name]
 
-  tab <- tab %>%
-    mutate(`Concentration all positive for target (copies/µL)` = `Conc(copies/µL)` * as.vector(unlist(all_pos))/tar_pos) # Abweichungen scheinen Rundungsfehler zu sein
+  conc_all_pos <- tab$`Conc(copies/µL)` * as.vector(unlist(all_pos))/tar_pos
+  if(length(conc_all_pos) != 0){
+    tab$`Concentration all positive for target (copies/µL)` = conc_all_pos 
+  } else {
+    tab$`Concentration all positive for target (copies/µL)` = 0
+  }
+  
   
   # compute mean of all positive concentration
   tab <- compute_groupwise_mean(tab, c("Target"),
@@ -291,9 +323,12 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
     tar_pos <- unlist(apply(tab, 1, sum_target_positive_values))
     quad_pos <- apply(tab[, quad_pos_names], 1, sum)
 
-    
-    tab <- tab %>%
-      mutate(`Concentration quad positive for target (copies/µL)` = `Conc(copies/µL)` * as.vector(unlist(quad_pos))/tar_pos) # Abweichungen scheinen Rundungsfehler zu sein
+    conc_quad_pos <- tab$`Conc(copies/µL)` * as.vector(unlist(quad_pos))/tar_pos
+    if(length(conc_all_pos) != 0){
+      tab$`Concentration quad positive for target (copies/µL)` = conc_quad_pos 
+    } else {
+      tab$`Concentration quad positive for target (copies/µL)` = 0
+    }
     
     # do not compute for RU5 wells
     tab[tab$Target == "RU5", "Concentration quad positive for target (copies/µL)"] = NA
@@ -339,7 +374,7 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
   
   # remove tmp column
   tab <- tab[, -which(names(tab) == "tmp")]
-  return(tab)
+  return(list(tab, "tab"))
 }
 
 
@@ -368,6 +403,7 @@ define_groups <- function(df_tw, rpp30_names){
 # ====================== Execute ===============================================
 create_tables <- function(mat_groups, in_csv, groups, ch_dye){
   output_tables <- list()
+  h2o_tables <- list()
   conf_mats <-  list()
   
   # loop over groups and run functions
@@ -391,7 +427,14 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye){
     # compute output tables (equivalent to analysis sheet in manual analysis)
     for(group in groups){
       if(all(group %in% mat_group)){
-        output_tables[[length(output_tables) + 1]] <- create_table(group, conf_mat, num_target, ch_dye)
+        out_table <- create_table(group, conf_mat, num_target, ch_dye)
+        if(out_table[[2]] == "h2o"){
+          h2o_tables[[length(h2o_tables) + 1]] <- out_table[[1]]
+        } else if(out_table[[2]] == "empty"){
+            next
+          } else {
+          output_tables[[length(output_tables) + 1]] <- out_table[[1]]
+        }
       } else if(all(!(group %in% mat_group))){
         next
       } else{
@@ -400,14 +443,15 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye){
     }
     conf_mats[[length(conf_mats) + 1]] <- conf_mat
   }
-  return(list(output_tables, conf_mats))
+  return(list(output_tables, conf_mats, h2o_tables))
 }
 
 # ======================== Beauty Output =======================================
 
 # create output with the key results (results sheet in manual analysis)
 get_output_sheet <- function(table){
-  desc <- sub("-.*", "", unique(table$`Sample description 1`)) 
+  #desc <- sub("-.*", "", unique(table$`Sample description 1`)) 
+  desc <- unique(table$`Sample description 1`)
   output_sheet = c("Title" = paste(unique(table$Well), collapse = ", "),
                    "Concentration probes" = unique(table$`Sample description 1`),
                    "Number of cells analysed" = unname(round(mean_cells_per_reac[desc])),
@@ -449,14 +493,13 @@ get_output_sheet <- function(table){
 # =================== Save to xlsx file =======================================
 
 # write information to xlsx file
-write_output_file <- function(output_tables, conf_mats, tab1, output_file){
+write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table){
   l <- lapply(output_tables, get_output_sheet)
   output_sheet <- do.call(rbind.data.frame, l)
   
-
   
   output_list <- append(append(list(output_sheet), conf_mats), output_tables)
-  output_list <- append(output_list, list(tab1))
+  output_list <- append(append(output_list, list(tab1)), h2o_table)
   
   openxlsx::write.xlsx(output_list, output_file)  
 }
