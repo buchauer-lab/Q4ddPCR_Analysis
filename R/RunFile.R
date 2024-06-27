@@ -1,4 +1,4 @@
-# branch main
+
 # clear workspace
 rm(list = ls())
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -7,11 +7,12 @@ source("ExtractInfos.R")
 
 # set arguments
 
-csv_file <- "../../data/Data6/24.05.2024_ClusterData.csv"
+
+csv_file <- "../../data/Data9/ClusterData19.06.csv"
 csv_skip <- 4 # number of rows before the table starts
-csv_nrows <- 232 - (csv_skip + 1) # number of rows in the table
-xlsx_file <- "../../data/Data6/24.05.2024_.xlsx"
-output_file <- "../../data/Data6/Output.xlsx"
+csv_nrows <- 285 - (csv_skip + 1) # number of rows in the table
+xlsx_file <- "../../data/Data9/DataSheet19.06.xlsx"
+output_file <- "../../data/Data9/Output.xlsx"
 
 ch_dye <- c("Ch1" = "FAM",
             "Ch2" = "VIC",
@@ -19,8 +20,8 @@ ch_dye <- c("Ch1" = "FAM",
             "Ch5" = "ROX",
             "Ch6" = "ATTO590")
 
-
 custom_dilution_factor <- FALSE
+#custom_dilution_factor <- TRUE
 dilution_factor <- c("gDNA 8E5 0,3 ng" = 100,
                      "gDNA 8E5 3 ng" = 100,
                      "gDNA 8E5 30 ng" = 100)
@@ -28,6 +29,7 @@ dilution_factor <- c("gDNA 8E5 0,3 ng" = 100,
 remove_channel <- c()
 rm_zero_channel_wells <- TRUE # remove wells that have concentration 0 for at least one channel
                                # will not remove H2O channels
+
 
 # ================== execute functions =========================================
 # read files
@@ -69,3 +71,4 @@ write_output_file(output_tables, conf_mats, tab1, output_file, h2o_tables)
 
 
 
+ 

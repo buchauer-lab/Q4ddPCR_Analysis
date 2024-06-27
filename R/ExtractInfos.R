@@ -1,4 +1,5 @@
 # branch main
+
 # extract relevant information from csv and xlsx file
 
 # load necessary packages
@@ -112,8 +113,10 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
   if(custom_dilution_factor){
     # check if specified dilution factors match table
     if(any(!(tab1$`Sample description 1` %in% names(dilution_factor)))){
-      stop("Dilution factor must be specified for all possible sample 
-           descriptions. Please match the names.")
+      warning("Assuming 1 as dilution factor if not specified otherwise.")
+      d <- rep(1, length(dilution_factor))
+      d[names(dilution_factor)] <- dilution_factor
+      dilution_factor <- d
     }
     tab1$`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)` <-
       dilution_factor[tab1$`Sample description 1`] * tab1$`Conc(copies/µL)` 
@@ -176,7 +179,7 @@ transform_digits <- function(combination, marker) {
   
   # Split combination into individual digits
   digits <- strsplit(combination, "_")[[1]]
-  
+
   # Initialize empty vector to store object names
   positive_objects <- character(0)
   
@@ -259,14 +262,25 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
   if(any(tab$`Accepted Droplets` < 7500)){
     warning(paste0("Removed well: ", 
                    unique(tab$`Well`[tab$`Accepted Droplets` < 7500]),
-                   " Less than 7500 droplets. "))
+                   ". Less than 7500 droplets. "))
+    
     tab <- tab[tab$`Accepted Droplets` >= 7500,]
+    
+    # check if any Well left
+    if(nrow(tab) == 0){
+      return(list("", "empty"))
+    }
   }
   
   
+  # do not compute values for H2O Wells
+  if(unique(tab$`Sample description 1`) %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser")){
+    return(list(tab, "h2o"))
+  }
+  
   # add mean concentration and mean unsheared
-  tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- mean_conc_household[sub("-.*", "", unique(tab$`Sample description 1`)) ]
-  tab$`Mean unsheared` <- mean_unsheared[sub("-.*", "", unique(tab$`Sample description 1`))]
+  tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- mean_conc_household[unique(tab$`Sample description 1`)]
+  tab$`Mean unsheared` <- mean_unsheared[unique(tab$`Sample description 1`)]
   
   # compute Target per million cells
   tab <- tab %>%
@@ -285,10 +299,15 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
   tar_pos <- unlist(apply(tab, 1, sum_target_positive_values))
   all_pos <- tab[, all_pos_name]
 
-  tab <- tab %>%
-    mutate(`Concentration all positive for target (copies/µL)` = `Conc(copies/µL)` * as.vector(unlist(all_pos))/tar_pos) 
-  tab$`Concentration all positive for target (copies/µL)`[is.na(tab$`Concentration all positive for target (copies/µL)`)] <- 0
+
+  conc_all_pos <- tab$`Conc(copies/µL)` * as.vector(unlist(all_pos))/tar_pos
+  if(length(conc_all_pos) != 0){
+    tab$`Concentration all positive for target (copies/µL)` = conc_all_pos 
+  } else {
+    tab$`Concentration all positive for target (copies/µL)` = 0
+  }
   
+
   # compute mean of all positive concentration
   tab <- compute_groupwise_mean(tab, c("Target"),
                                 "Mean concentration all positive all targets (copies/µL)",
@@ -309,11 +328,14 @@ create_table <- function(batch, conf_mat, num_target, ch_dye){
     tar_pos <- unlist(apply(tab, 1, sum_target_positive_values))
     quad_pos <- apply(tab[, quad_pos_names], 1, sum)
 
-    
-    tab <- tab %>%
-      mutate(`Concentration quad positive for target (copies/µL)` = `Conc(copies/µL)` * as.vector(unlist(quad_pos))/tar_pos)
-    tab$`Concentration quad positive for target (copies/µL)`[is.na(tab$`Concentration quad positive for target (copies/µL)`)] <- 0
-    
+
+    conc_quad_pos <- tab$`Conc(copies/µL)` * as.vector(unlist(quad_pos))/tar_pos
+    if(length(conc_all_pos) != 0){
+      tab$`Concentration quad positive for target (copies/µL)` = conc_quad_pos 
+    } else {
+      tab$`Concentration quad positive for target (copies/µL)` = 0
+    }
+
     # do not compute for RU5 wells
     tab[tab$Target == "RU5", "Concentration quad positive for target (copies/µL)"] = NA
     
@@ -415,7 +437,10 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye){
         out_table <- create_table(group, conf_mat, num_target, ch_dye)
         if(out_table[[2]] == "h2o"){
           h2o_tables[[length(h2o_tables) + 1]] <- out_table[[1]]
-        } else{
+
+        } else if(out_table[[2]] == "empty"){
+            next
+          } else {
           output_tables[[length(output_tables) + 1]] <- out_table[[1]]
         }
       } else if(all(!(group %in% mat_group))){
@@ -433,7 +458,8 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye){
 
 # create output with the key results (results sheet in manual analysis)
 get_output_sheet <- function(table){
-  desc <- sub("-.*", "", unique(table$`Sample description 1`)) 
+  #desc <- sub("-.*", "", unique(table$`Sample description 1`)) 
+  desc <- unique(table$`Sample description 1`)
   output_sheet = c("Title" = paste(unique(table$Well), collapse = ", "),
                    "Concentration probes" = unique(table$`Sample description 1`),
                    "Number of cells analysed" = unname(round(mean_cells_per_reac[desc])),
