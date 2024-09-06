@@ -10,7 +10,7 @@ get_multi_pos <- function(tab, genes, tar_mio_factor){
 
   # extract all column names of table that contain specified genes
   multi_pos_names <- grep(pattern, names(tab), value = TRUE, perl = TRUE)
-  
+
   # Check that only count columns are in, not previously computed multipos concentrations
   # e.g., do not use "Env+Psi+Gag+Pol+ Intact Provirus" when computing "Env+Psi+ concentration"
   multi_pos_names <- grep(" ", multi_pos_names, value = TRUE, invert = TRUE)

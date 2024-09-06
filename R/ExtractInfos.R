@@ -114,15 +114,12 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
   if(custom_dilution_factor){
     # check if specified dilution factors match table
     if(any(!(tab1$`Sample description 1` %in% names(dilution_factor)))){
-      
       warning("Assuming 1 as dilution factor if not specified otherwise.")
+      if(any(!(names(dilution_factor) %in% tab1$`Sample description 1` ))){
+        warning("Not all specified dilution factor names appear in sample description.")
+      }
       
-      # make vector of required length filled with 1's
-      d <- rep(1, length(dilution_factor))
-      
-      # exchange 1 by custom dilution factor if specified
-      d[names(dilution_factor)] <- dilution_factor
-      dilution_factor <- d
+      dilution_factor[unique(tab1$`Sample description 1`[!(tab1$`Sample description 1` %in% names(dilution_factor))])] <- 1
     }
     
     # compute concentration
@@ -143,13 +140,12 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
     mutate(`STD concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
              sd(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)) %>%
     ungroup() %>%
-    
     # compute mean concentration of PRR30(Shear) (grouped by sample description)
     group_by(`Sample description 1`) %>%
     mutate(`Mean concentration RPP30 + RPP30Shear (copies/µL)` =
              mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)) %>%
     ungroup() 
-
+  
   # compute unsheared value  
   tab1$unsheared <- tab1$`Ch1+Ch2+`/(tab1$`Ch1+Ch2+` + (tab1$`Ch1+Ch2-` + tab1$`Ch1-Ch2+`)/2)
   
@@ -185,6 +181,20 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
 
 
 # ====================== Define functions to calculate table ==================
+
+# function to get all possible combinations of multiple positives 
+get_multipos <- function(markers){
+  multi_pos <- list()
+  
+  for (i in 2:length(markers)) {
+    # Get the combinations of length i
+    comb <- combn(markers, i, simplify = FALSE)
+    # Append the combinations to the list
+    multi_pos <- c(multi_pos, comb)
+  }
+  
+  return(multi_pos)
+}
 
 # helper function to convert the binary digits into their meaning
 transform_digits <- function(combination, marker) {
@@ -247,11 +257,116 @@ sum_target_positive_values <- function(tab){
 # helper function to compute group specific mean (new_col) of a variable (old_col)
 # e.g., mean of Target per Mio cells for A11 & B11 with ENV Target
 compute_groupwise_mean<- function(tab, group_by, new_col, old_col){
-  tab <- tab %>%
-    group_by_at(vars(!!!group_by)) %>%
-    mutate(!!sym(new_col) :=
-             mean(!!sym(old_col), na.rm = TRUE)) %>%
-    ungroup()
+  
+  if(grepl("Mean", new_col)){
+    tab <- tab %>%
+      group_by_at(vars(!!!group_by)) %>%
+      mutate(!!sym(new_col) :=
+               mean(!!sym(old_col), na.rm = TRUE)) %>%
+      mutate(!!sym(sub("Mean", "STD", new_col)) :=
+               sd(!!sym(old_col), na.rm = TRUE)) %>%
+      ungroup()
+  } else{
+    tab <- tab %>%
+      group_by_at(vars(!!!group_by)) %>%
+      mutate(!!sym(new_col) :=
+               mean(!!sym(old_col), na.rm = TRUE)) %>%
+      ungroup()
+  }
+
+  return(tab)
+}
+
+# Function to check if one combination is a subset of another
+is_subset <- function(subset, set) {
+  all(subset %in% set)
+}
+
+# Function to compute relevant subsets
+get_subset <- function(multi_pos){
+  # Initialize a list to store the subset relationships
+  subset_list <- vector("list", length(multi_pos))
+  names(subset_list) <- seq_along(multi_pos) 
+  
+  # Check which combinations are subsets of which other combinations
+  for (i in 1:(length(multi_pos)-1)) {
+    subset_list[[i]] <- list()
+    for (j in 1:(length(multi_pos)-1)) {
+      if (i != j) {
+        if (is_subset(multi_pos[[i]], multi_pos[[j]])) {
+          subset_list[[i]] <- c(subset_list[[i]], j)
+        }
+      }
+    }
+  }
+  subset_list <- lapply(subset_list, unlist)
+  return(subset_list)
+}
+
+# function to compute Total HIV DNA/Mio cells as proposed by Rachel
+compute_total_HIV <- function(tab, multi_pos){
+  # get length of multiple positives
+  len_pos <- unlist(lapply(multi_pos, length))
+  
+  # find which multiple positives are a subset of another one
+  subsets <- get_subset(multi_pos)
+
+  # check that there are multiple positives that need to be corrected
+  if(max(len_pos) < 2){
+    warning("Maximum number of genes in multiple positives is 2. Total HIV DNA
+            per Mio cells will not be computed")
+    return(tab)
+  }
+  
+  # get shear corrected all positive value
+  quad_value_shear_corrected <- tab[[paste0("intact provirus/Mio cells ",
+                                            paste(multi_pos[[which.max(len_pos)]], collapse = "."),
+                                            ", corrected for shearing")]]
+  # loop over the length of combinations
+  for (i in (max(len_pos)-1):2){
+    which_multipos <- which(len_pos == i)
+
+   # loop over all multi positives
+    for(comb in which_multipos){
+      # get gene names
+      genes <- multi_pos[[comb]]
+      # get name for new variable
+      name <- paste0("Higher multipos corrected ", paste(genes, collapse = "."))
+      # get value that needs to be corrected
+      original_value <- tab[[paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))]]
+      # correct by all positive value
+      new_value = original_value - quad_value_shear_corrected
+      # correct by subsets if necessary
+      if(!is.null(subsets[[as.character(comb)]])){
+        for(subset in subsets[[as.character(comb)]]){
+          # substract subset value
+          subset_value <- tab[[paste0("Higher multipos corrected ", paste(multi_pos[[subset]], collapse = "."))]]
+          #print(subset_value)
+          new_value = new_value - subset_value
+        }
+      }
+      # save new values to table
+
+      tab[[name]] <- unique(na.omit(new_value))
+    }
+    
+  }
+  # correct for single positives
+  target <- substr(tab$Target, nchar(tab$Target)-2, nchar(tab$Target))
+
+  # compute for each column
+  subtract_multipos <- lapply(unique(target), function(tar){
+    cols.of.int <-  grep(tar, grep("Higher multipos corrected", names(tab), value=T), value=T)
+    res <- apply(tab[grepl(tar, tab$Target),cols.of.int], 1, sum, na.rm=TRUE)
+    return(res)
+  })
+
+  tab[["Multipos corrected Mean Target/Mio cells"]] <- tab[["Mean Target/Mio cells"]] - quad_value_shear_corrected - unlist(subtract_multipos)
+  
+  tab[["Higher multipos corrected sum for all targets/Mio cells"]] <- 4 * mean(tab[["Multipos corrected Mean Target/Mio cells"]], na.rm=TRUE)
+  
+  # TODO
+  tab[["total HIV DNA/Mio cells"]] <-  quad_value_shear_corrected + apply(tab[,grep("Higher multipos corrected", names(tab), value=TRUE)], 1, sum, na.rm=T)
   return(tab)
 }
 
@@ -340,6 +455,8 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
   for(multip in multi_pos){
     tab <- get_multi_pos(tab, multip, tar_mio_factor)
   }
+  
+  tab <- compute_total_HIV(tab, multi_pos)
 
   return(list(tab, "tab"))
 }
@@ -449,9 +566,7 @@ get_output_sheet <- function(table, multi_pos){
                    "Concentration probes" = unique(table$`Sample description 1`),
                    "Number of cells analysed" = unname(round(mean_cells_per_reac[desc])),
                    "Shearing Index" = unname(round(Shear_ind[desc], 2)),
-                   "Total HIV-DNA (copies/Mio cells)" = ifelse(any("RU5" %in% unique(table$Target)),
-                                                               round(unique(table[table$Target == "RU5", "Mean Target/Mio cells" ])),
-                                                               NA),
+                   "Total HIV-DNA (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells"]])),
                    "Gag/Mio cells" = round(unique(table[grepl("Gag", table$Target), "Mean Target/Mio cells"])),
                    "Pol/Mio cells" = round(unique(table[grepl("Pol", table$Target), "Mean Target/Mio cells"])),
                    "Psi/Mio cells" = round(unique(table[grepl("Psi", table$Target), "Mean Target/Mio cells"])),
