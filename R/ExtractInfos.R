@@ -6,7 +6,7 @@
 library(readxl)
 library(tidyr)
 library(dplyr)
-source("MultipPositives.R")
+#source("R/MultipPositives.R")
 
 # read files
 read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel,
@@ -58,7 +58,7 @@ read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel,
   cols_of_int <- c("Well", "Sample description 1", "DyeName(s)", "Target", 
                    "Conc(copies/µL)", "Accepted Droplets", "Positives", 
                    "Negatives", grep("Ch", names(in_xlsx), value = T))
-    dtQC <- in_xlsx[,cols_of_int]
+  dtQC <- in_xlsx[,cols_of_int]
   
   # add threshold and number of total positives
   dtQC$Threshold <- dtQC$`Accepted Droplets`/3
