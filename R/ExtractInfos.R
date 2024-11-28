@@ -88,11 +88,12 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
   # check which wells have same staining
   table_targ_well<- table(dtQC[, c("Well", "Target")])
   df_tw <- as.data.frame.matrix(table_targ_well)
-  
+  print(head(df_tw))
   # get names of rows with Target RPP30 or RPP30Shear
   rpp30_names <- rownames(df_tw[which(df_tw$RPP30 == 1),])
   rpp30sh_names <- rownames(df_tw[which(df_tw$RPP30Shear == 1),])
-  
+  print(rpp30_names)
+  print(rpp30sh_names)
   # check that wells for RPP30 and RPP30shear are the same
   if(any(rpp30_names != rpp30sh_names)){
     stop("Wells with targets RPP30 and RPP30Shear do not match. Please check
@@ -133,6 +134,7 @@ create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor
   }
   
   # compute mean concentrations (grouped by target and sample description)
+  print(tab1$`Sample description 1` %>% table)
   tab1 <- tab1 %>%
     group_by(Target, `Sample description 1`) %>%
     mutate(`Mean concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
@@ -346,8 +348,11 @@ compute_total_HIV <- function(tab, multi_pos){
         }
       }
       # save new values to table
-
-      tab[[name]] <- unique(na.omit(new_value))
+      tmp <- unique(na.omit(new_value))
+      if(length(tmp) == 0){
+        tmp = 0
+      }
+      tab[[name]] <- tmp
     }
     
   }
@@ -423,6 +428,9 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
     warning("Sample description not exactly matched in names for Mean RPP30(Shear) concentration and Mean unsheared.
             Trying flexibel appraoch next.")
     flex_name_bool <- unlist(lapply(names(mean_conc_household), grepl, unique(tab$`Sample description 1`)))
+    print(names(mean_conc_household))
+    print(unique(tab$`Sample description 1`))
+    print(flex_name_bool)
     if(sum(flex_name_bool) != 1){
       # abort if there is no partial match and ask user to fix data
       stop("Flexibel approach failed. Make sure to match Sample descriptions for RPP samples and HIV-target samples.")

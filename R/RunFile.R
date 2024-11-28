@@ -8,11 +8,11 @@ source("ExtractInfos.R")
 # set arguments
 
 
-csv_file <- "../../data/Data14/20240807_GTG_.csv"
+csv_file <- "../../data/Data16/20241015_GTG_Q4_A5321_Plate2_20241015_213719_533_ClusterData.csv"
 csv_skip <- 4 # number of rows before the table starts
-csv_nrows <- 261 - (csv_skip + 1) # number of rows in the table
-xlsx_file <- "../../data/Data14/20240807_GTG_.xlsx"
-output_file <- "../../data/Data14/Output.xlsx"
+csv_nrows <- 432 - (csv_skip + 1) # number of rows in the table
+xlsx_file <- "../../data/Data16/20241015_GTG_Q4_A5321_Plate2_20241015_213719_533.xlsx"
+output_file <- "../../data/Data16/Output.xlsx"
 
 ch_dye <- c("Ch1" = "FAM",
             "Ch2" = "VIC",
@@ -20,7 +20,7 @@ ch_dye <- c("Ch1" = "FAM",
             "Ch5" = "ROX",
             "Ch6" = "ATTO590")
 
-custom_dilution_factor <- TRUE
+custom_dilution_factor <- FALSE
 
 dilution_factor <- c("112213 TP1" = 100,
                      "112213 tp2" = 100,
@@ -30,8 +30,10 @@ dilution_factor <- c("112213 TP1" = 100,
 #dilution_factor <- c("gDNA 5104" = 100, data3
 #                     "gDNA 8E5" = 1)
 
-remove_channel <- c("A04","B04","C04","D04","C01","D01","C02","D02","C06","D06","C05","D05","A07","B07","C07","D07","E07","F07","G07","H07","E06","F06","G06","H06")
-rm_zero_channel_wells <- FALSE # remove wells that have concentration 0 for at least one channel
+remove_channel <- c("A10", "B10", "C10", "D10", "E10", "F10", "G10", "H10",
+                    "A11", "B11", "C11", "D11", "E11", "F11", "G11", "H11",
+                    "A09", "B09", "C09", "D09", "B07", "C07", "D07")
+rm_zero_channel_wells <- F # remove wells that have concentration 0 for at least one channel
                               # will not remove H2O channels
 
 compute_all_positives_for <- c("Psi", "Env", "Gag", "Pol")
