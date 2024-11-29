@@ -8,178 +8,6 @@ library(tidyr)
 library(dplyr)
 #source("R/MultipPositives.R")
 
-# read files
-read_files <- function(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel,
-                       rm_zero_channels = FALSE){
-  
-  # check if files exist
-  if(!file.exists(csv_file)){
-    stop("Specified csv file does not exist. Please check if the path and name 
-         are correct and that there are no spelling mistakes.")
-  }
-  
-  if(!file.exists(xlsx_file)){
-    stop("Specified xlsx file does not exist. Please check if the path and name 
-         are correct and that there are no spelling mistakes.")
-  }
-  
-  # read csv
-  in_csv <- read.csv(csv_file, skip = csv_skip, row.names = NULL, 
-                     nrows = csv_nrows)
-  
-  # remove shift in column names and resulting empty column at end
-  colnames(in_csv) <- colnames(in_csv)[2:ncol(in_csv)]
-  in_csv <- in_csv[,1:(ncol(in_csv) -1)]
-  
-  # remove wells as specified by user
-  if(any(!(remove_channel %in% in_csv$Well))){
-    stop("At least one of the Wells that should be removed does not occur in
-         the Well column of the csv file. Please only remove Wells that do occur
-         in the file.")
-  }
-  in_csv <- in_csv[!(in_csv$Well %in% remove_channel),]
-  
-  # read xlsx
-  in_xlsx <- read_xlsx(xlsx_file, sheet = 1)
-  
-  # make concentration column numeric
-  in_xlsx$`Conc(copies/µL)` <- as.numeric(in_xlsx$`Conc(copies/µL)`)
-  in_xlsx$`Conc(copies/µL)`[is.na(in_xlsx$`Conc(copies/µL)`)] <- 0
-  
-  #remove wells as specified by user
-  if(any(!(remove_channel %in% in_xlsx$Well))){
-    stop("At least one of the Wells that should be removed does not occur in
-         the Well column of the xlsx file. Please only remove Wells that do 
-         occur in the file.")
-  }
-  in_xlsx <- in_xlsx[!(in_xlsx$Well %in% remove_channel),]
-  
-  # create sheet Data_table Quality Check (dtQC)
-  cols_of_int <- c("Well", "Sample description 1", "DyeName(s)", "Target", 
-                   "Conc(copies/µL)", "Accepted Droplets", "Positives", 
-                   "Negatives", grep("Ch", names(in_xlsx), value = T))
-  dtQC <- in_xlsx[,cols_of_int]
-  
-  # add threshold and number of total positives
-  dtQC$Threshold <- dtQC$`Accepted Droplets`/3
-  dtQC$`Total positives` <- apply(dtQC[,grep("\\+", names(dtQC), value=T)], 1, sum)
-  
-  # remove wells that have concentration zero for at least one well if specified
-  if(rm_zero_channels){
-    # make exception for H20 channels
-    zero_ch <- unique(dtQC$Well[(dtQC$`Conc(copies/µL)` == 0) & 
-                                  !(dtQC$`Sample description 1` %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser"))])
-    if(length(zero_ch) > 0){
-      warning(paste0("These wells will be removed, as they have at least one channel with concentration value 0: ",
-                     paste(zero_ch, collapse = ", ")))
-    }
-    dtQC <- dtQC[!(dtQC$Well %in% zero_ch),]
-    in_csv <- in_csv[!(in_csv$Well %in% zero_ch),]
-  }
-  
-  # return read data
-  return(list(in_csv, dtQC))
-}
-
-# create table with RPP30 and RPP30Shear controls
-create_household_table <- function(dtQC, dilution_factor, custom_dilution_factor,
-                                   thresh, mean_copies_factor, mean_cells_per_reac_factor){
-  
-  # check which wells have same staining
-  table_targ_well<- table(dtQC[, c("Well", "Target")])
-  df_tw <- as.data.frame.matrix(table_targ_well)
-  
-  # get names of rows with Target RPP30 or RPP30Shear
-  rpp30_names <- rownames(df_tw[which(df_tw$RPP30 == 1),])
-  rpp30sh_names <- rownames(df_tw[which(df_tw$RPP30Shear == 1),])
-  
-  # check that wells for RPP30 and RPP30shear are the same
-  if(any(rpp30_names != rpp30sh_names)){
-    stop("Wells with targets RPP30 and RPP30Shear do not match. Please check
-         again. If this is expected behaviour, please contact Mark :)")
-  }
-  
-  # compute RPP30(Shear) table
-  tab1 <- arrange(dtQC[dtQC$Well %in% rpp30_names,], Target)
-
-  # remove Wells with less than x (7500) accepted droplets
-  if(any(tab1$`Accepted Droplets` < thresh)){
-    warning(paste0("Removed well(s): ", 
-                 unique(tab1$`Accepted Droplets`[tab1$`Accepted Droplets` < thresh]),
-                 ". Less than ", thresh, " droplets."))
-    tab1 <- tab1[tab1$`Accepted Droplets` >= thresh,]
-  }
-  
-  # add dilution factor
-  if(custom_dilution_factor){
-    # check if specified dilution factors match table
-    if(any(!(tab1$`Sample description 1` %in% names(dilution_factor)))){
-      warning("Assuming 1 as dilution factor if not specified otherwise.")
-      if(any(!(names(dilution_factor) %in% tab1$`Sample description 1` ))){
-        warning("Not all specified dilution factor names appear in sample description.")
-      }
-      
-      dilution_factor[unique(tab1$`Sample description 1`[!(tab1$`Sample description 1` %in% names(dilution_factor))])] <- 1
-    }
-    
-    # compute concentration
-    tab1$`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)` <-
-      dilution_factor[tab1$`Sample description 1`] * tab1$`Conc(copies/µL)` 
-  
-  } else {
-    # use 1 as dilution factor for all concentrations
-    warning("No dilution factors specified. Assuming 1 to be dilution factor.")
-    tab1$`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)` <- tab1$`Conc(copies/µL)` 
-  }
-  
-  # compute mean concentrations (grouped by target and sample description)
-  tab1 <- tab1 %>%
-    group_by(Target, `Sample description 1`) %>%
-    mutate(`Mean concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
-             mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)) %>%
-    mutate(`STD concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
-             sd(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)) %>%
-    ungroup() %>%
-    # compute mean concentration of PRR30(Shear) (grouped by sample description)
-    group_by(`Sample description 1`) %>%
-    mutate(`Mean concentration RPP30 + RPP30Shear (copies/µL)` =
-             mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)) %>%
-    ungroup() 
-  
-  # compute unsheared value  
-  tab1$unsheared <- tab1$`Ch1+Ch2+`/(tab1$`Ch1+Ch2+` + (tab1$`Ch1+Ch2-` + tab1$`Ch1-Ch2+`)/2)
-  
-  # compute mean unsheared
-  tab1 <- tab1 %>%
-    group_by(`Sample description 1`) %>%
-    mutate(`Mean unsheared` =
-             mean(`unsheared`, na.rm = TRUE)) %>%
-    mutate(`STD unsheared` =
-             sd(`unsheared`, na.rm = TRUE)) %>%
-    ungroup() 
-  
-  # compute shearing index
-  tab1$`Shearing index` <- 1-tab1$`Mean unsheared`
-  
-  # compute mean copies per well and mean cells per reaction
-  tab1$`Mean copies/well` <- mean_copies_factor * tab1$`Mean concentration RPP30 + RPP30Shear (copies/µL)` # mean copies factor should be volume probably
-  tab1$`Mean cells per reaction` <- mean_cells_per_reac_factor * tab1$`Mean copies/well`
-  
-  
-  # extract mean concentration of RPP30 + RPP30Shear, mean unsheared, mean cells per reaction, and shearing index
-  mean_conc_household <- setNames(unique(tab1$`Mean concentration RPP30 + RPP30Shear (copies/µL)`),
-                                  unique(tab1$`Sample description 1`))
-  mean_unsheared <- setNames(unique(tab1$`Mean unsheared`),
-                             unique(tab1$`Sample description 1`))
-  mean_cells_per_reac <- setNames(unique(tab1$`Mean cells per reaction`),
-                                  unique(tab1$`Sample description 1`))
-  Shear_ind <- setNames(unique(tab1$`Shearing index`),
-                        unique(tab1$`Sample description 1`))
-  
-  return(list(tab1, mean_conc_household, mean_unsheared, mean_cells_per_reac, Shear_ind, rpp30_names, df_tw))
-}
-
-
 # ====================== Define functions to calculate table ==================
 
 # function to get all possible combinations of multiple positives 
@@ -463,29 +291,8 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
 
 
 
-# ====================== Compute other stuff ===================================
-define_groups <- function(df_tw, rpp30_names){
-  # continue with other names
-  df_tw <- df_tw[!(rownames(df_tw) %in% rpp30_names),]
-
-  # add sample description
-  table_samp_desc <- as.data.frame.matrix(table(dtQC[, c("Well" , "Sample description 1")]))
-  comb_table <- cbind(df_tw, table_samp_desc[!(rownames(table_samp_desc) %in% rpp30_names),])
-  
-  # get wells that are used for same confusion matrix
-  mat_sum <- apply(df_tw, 1, sum)
-  mat_groups <- lapply(unique(mat_sum), function(x) names(which(mat_sum == x)))
-  
-  # get wells that should be analysed together
-  comb_str <- apply(comb_table, 1, function(row) paste(row, collapse = "_"))
-  groups <- lapply(unique(comb_str), function(x) names(which(comb_str == x)))
-  
-  # num_groups <- length(groups)
-  return(list(mat_groups, groups))
-}
-
 # ====================== Execute ===============================================
-create_tables <- function(mat_groups, in_csv, groups, ch_dye, multi_pos, thresh, tar_mio_factor){
+create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_mio_factor){
 
   # initialize empty lists to save output
   output_tables <- list()
@@ -493,17 +300,21 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye, multi_pos, thresh,
   conf_mats <-  list()
   
   # loop over groups and run functions
-  for (mat_group in mat_groups){
-    sub_in_csv <- in_csv[in_csv$Well %in% mat_group,]
+  for (group in lapply(grouped_data[is.na(grouped_data$RPP30), "shared_Wells"],
+                       function(x)(unlist(strsplit(x, ", "))))){
+    # get relevant section of csv
+    sub_in_csv <- in_csv[in_csv$Well %in% group,]
+    # remove columns with all na
     sub_in_csv <- sub_in_csv[, !apply(is.na(sub_in_csv), 2, all)]
     # compute confusion matrix (for 4 or 5 target group)
+    # TODO: before conf_mat was computed once for all wells with the same targets
+    # TODO: check that it is independent
+    # TODO: append appropriate conf matrices at the end
     conf_mat <- pivot_wider(sub_in_csv, id_cols = Well,
                             names_from = grep("Target", names(sub_in_csv), value = T),
-                            values_from = Count)
+                            values_from = Count,
+                            values_fill = 0)
 
-    # set na to zero
-    conf_mat[is.na(conf_mat)] <- 0
-    
     # get number of targets
     num_target <- length(grep("Target", names(sub_in_csv), value = T))
     
@@ -515,27 +326,22 @@ create_tables <- function(mat_groups, in_csv, groups, ch_dye, multi_pos, thresh,
     }
     
     # compute output tables (equivalent to analysis sheet in manual analysis)
-    for(group in groups){
-      if(all(group %in% mat_group)){
-        # create output table
-        out_table <- create_table(group, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor)
-        
-        # save to water table if water control
-        if(out_table[[2]] == "h2o"){
-          h2o_tables[[length(h2o_tables) + 1]] <- out_table[[1]]
 
-        } else if(out_table[[2]] == "empty"){
-          # skip if empty (everything removed during QC)
-            next
-          } else {
-          output_tables[[length(output_tables) + 1]] <- out_table[[1]]
-        }
-      } else if(all(!(group %in% mat_group))){
+    # create output table
+    out_table <- create_table(group, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor)
+    
+    # save to water table if water control
+    if(out_table[[2]] == "h2o"){
+      h2o_tables[[length(h2o_tables) + 1]] <- out_table[[1]]
+
+    } else if(out_table[[2]] == "empty"){
+      # skip if empty (everything removed during QC)
         next
-      } else{
-        stop("Not all samples in one confusion matrix. This is an error in the code! Contact Mark.")
-      }
+      } else {
+      output_tables[[length(output_tables) + 1]] <- out_table[[1]]
     }
+
+
     # save confusion matrix
     conf_mats[[length(conf_mats) + 1]] <- conf_mat
   }
