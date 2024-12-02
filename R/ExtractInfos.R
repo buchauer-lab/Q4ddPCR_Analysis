@@ -11,13 +11,18 @@ source("R/CreateHouseholdTable.R")
 
 # ====================== Define functions to calculate table ==================
 
-# function to get all possible combinations of multiple positives 
-get_multipos <- function(markers){
+#' Get multiple positive combinations
+#' 
+#' Compute the possible combinations of genes based on the genes in an experiment.
+#' @param genes List of genes used in the experiment.
+#' @return List of possible combinations
+#' @export
+get_multipos <- function(genes){
   multi_pos <- list()
   
-  for (i in 2:length(markers)) {
+  for (i in 2:length(genes)) {
     # Get the combinations of length i
-    comb <- combn(markers, i, simplify = FALSE)
+    comb <- combn(genes, i, simplify = FALSE)
     # Append the combinations to the list
     multi_pos <- c(multi_pos, comb)
   }
@@ -25,8 +30,16 @@ get_multipos <- function(markers){
   return(multi_pos)
 }
 
-# helper function to convert the binary digits into their meaning
-transform_digits <- function(combination, marker) {
+#' Convert digits into genes
+#' 
+#' Convert the binary digits of into the genes they represent (i.e., match 
+#' target from csv file to genes).
+#' @param combination String with binaries (0 and 1) separated by underscores
+#' ("_").
+#' @param genes Vector of genes that were targeted for.
+#' @return Vector containing the transformed strings.
+#' @export
+transform_digits <- function(combination, genes) {
   
   # Split combination into individual digits
   digits <- strsplit(combination, "_")[[1]]
@@ -37,7 +50,7 @@ transform_digits <- function(combination, marker) {
   # Iterate over each digit and add corresponding object name if positive
   for (i in 1:length(digits)) {
     if (as.integer(digits[i]) == 1) {
-      positive_objects <- c(positive_objects, marker[i])
+      positive_objects <- c(positive_objects, genes[i])
     }
   }
   
@@ -49,17 +62,30 @@ transform_digits <- function(combination, marker) {
   return(transformed_combination)
 }
 
-# helper function to extract colnames of target positive cols
+#' Extract target positive column names
+#' 
+#' Extract those column names that are positive for a specified target (gene).
+#' @param target The target the column names should be positive for.
+#' @param colnames The column names of a data frame.
+#' @return Vector containing the gene positive column names.
+#' @export
 extract_target_positive_colnames <- function(target, colnames){
   cols <- grep(target, colnames, value=T)
   return(grep(" ", cols, value=T, invert = T))
 }
 
-# helper function to get Channel - Gene match
-match_channel_gene <- function(tab, ch_dye, num_ch){
+#' Match measurement channel to gene
+#' 
+#' Match the Channels that were measured with the genes using the dye information.
+#' @param df Data frame with columns "DyeName(s)" and "Target".
+#' @param ch_dye Named vector matching channels (names) with dyes (values).
+#' @param num_ch The number of channels used in total (must be 4 or 5).
+#' @return Vector of genes.
+#' @export
+match_channel_gene <- function(df, ch_dye, num_ch){
   genes <- c()
   for (dye in ch_dye){
-    gene <- tab[tab$"DyeName(s)" == dye, "Target"]
+    gene <- df[df$"DyeName(s)" == dye, "Target"]
     if(length(unique(gene)) > 1){
       stop("More than one gene per dye detected.")
     }
@@ -76,19 +102,32 @@ match_channel_gene <- function(tab, ch_dye, num_ch){
   }
 }
 
-# helper function to compute total marker positive values
-sum_target_positive_values <- function(tab){
-  target <- substr(tab["Target"], (nchar(tab["Target"])-2), nchar(tab["Target"]))
-  cols <- extract_target_positive_colnames(target, names(tab))
-  return(sum(as.numeric(tab[cols]), na.rm=T))
+#' Compute total target positive values
+#' 
+#' Compute sum of all target positive values (including doublets, triplets, etc.)
+#' @param df Data frame with experiment information.
+#' @return Numeric: sum of all target positive values.
+#' @export
+sum_target_positive_values <- function(df){
+  target <- substr(df["Target"], (nchar(df["Target"])-2), nchar(df["Target"]))
+  cols <- extract_target_positive_colnames(target, names(df))
+  return(sum(as.numeric(df[cols]), na.rm=T))
 }
 
-# helper function to compute group specific mean (new_col) of a variable (old_col)
-# e.g., mean of Target per Mio cells for A11 & B11 with ENV Target
-compute_groupwise_mean<- function(tab, group_by, new_col, old_col){
+#' Compute group-wise mean
+#' 
+#' Compute the mean of a specified group of Wells for a certain column and add
+#' as new column
+#' @param df Data frame with experiment information.
+#' @param group_by Column(s) by which the data should be grouped.
+#' @param new_col The name of the new column.
+#' @param old_col The name of the column the mean should be computed from.
+#' @return df updated by new_col.
+#' @export
+compute_groupwise_mean<- function(df, group_by, new_col, old_col){
   
   if(grepl("Mean", new_col)){
-    tab <- tab %>%
+    df <- df %>%
       group_by_at(vars(!!!group_by)) %>%
       mutate(!!sym(new_col) :=
                mean(!!sym(old_col), na.rm = TRUE)) %>%
@@ -96,22 +135,22 @@ compute_groupwise_mean<- function(tab, group_by, new_col, old_col){
                sd(!!sym(old_col), na.rm = TRUE)) %>%
       ungroup()
   } else{
-    tab <- tab %>%
+    df <- df %>%
       group_by_at(vars(!!!group_by)) %>%
       mutate(!!sym(new_col) :=
                mean(!!sym(old_col), na.rm = TRUE)) %>%
       ungroup()
   }
 
-  return(tab)
+  return(df)
 }
 
-# Function to check if one combination is a subset of another
-is_subset <- function(subset, set) {
-  all(subset %in% set)
-}
-
-# Function to compute relevant subsets
+#' Get relevant subsets
+#' 
+#' Compute the possible subsets of a multiple positive target.
+#' @param multi_pos The multiple positive target.
+#' @return List of the possible subsets.
+#' @export
 get_subset <- function(multi_pos){
   # Initialize a list to store the subset relationships
   subset_list <- vector("list", length(multi_pos))
@@ -122,7 +161,7 @@ get_subset <- function(multi_pos){
     subset_list[[i]] <- list()
     for (j in 1:(length(multi_pos)-1)) {
       if (i != j) {
-        if (is_subset(multi_pos[[i]], multi_pos[[j]])) {
+        if (all(multi_pos[[i]] %in% multi_pos[[j]])) {
           subset_list[[i]] <- c(subset_list[[i]], j)
         }
       }
@@ -132,8 +171,14 @@ get_subset <- function(multi_pos){
   return(subset_list)
 }
 
-# function to compute Total HIV DNA/Mio cells as proposed by Rachel
-compute_total_HIV <- function(tab, multi_pos){
+#' Compute total HIV content
+#' 
+#' Compute the total HIV content as proposed by Rachel Scheck.
+#' @param df The data frame for whose column the total HIV content shall be computed
+#' @param multi_pos List of multiple positives. #TODO: check again.
+#' @return Data frame df updated with new columns.
+#' @export
+compute_total_HIV <- function(df, multi_pos){
   # get length of multiple positives
   len_pos <- unlist(lapply(multi_pos, length))
   
@@ -144,11 +189,11 @@ compute_total_HIV <- function(tab, multi_pos){
   if(max(len_pos) < 2){
     warning("Maximum number of genes in multiple positives is 2. Total HIV DNA
             per Mio cells will not be computed")
-    return(tab)
+    return(df)
   }
   
   # get shear corrected all positive value
-  quad_value_shear_corrected <- tab[[paste0("intact provirus/Mio cells ",
+  quad_value_shear_corrected <- df[[paste0("intact provirus/Mio cells ",
                                             paste(multi_pos[[which.max(len_pos)]], collapse = "."),
                                             ", corrected for shearing")]]
   # loop over the length of combinations
@@ -162,44 +207,60 @@ compute_total_HIV <- function(tab, multi_pos){
       # get name for new variable
       name <- paste0("Higher multipos corrected ", paste(genes, collapse = "."))
       # get value that needs to be corrected
-      original_value <- tab[[paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))]]
+      original_value <- df[[paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))]]
       # correct by all positive value
       new_value = original_value - quad_value_shear_corrected
       # correct by subsets if necessary
       if(!is.null(subsets[[as.character(comb)]])){
         for(subset in subsets[[as.character(comb)]]){
           # substract subset value
-          subset_value <- tab[[paste0("Higher multipos corrected ", paste(multi_pos[[subset]], collapse = "."))]]
+          subset_value <- df[[paste0("Higher multipos corrected ", paste(multi_pos[[subset]], collapse = "."))]]
           #print(subset_value)
           new_value = new_value - subset_value
         }
       }
       # save new values to table
 
-      tab[[name]] <- unique(na.omit(new_value))
+      df[[name]] <- unique(na.omit(new_value))
     }
     
   }
   # correct for single positives
-  target <- substr(tab$Target, nchar(tab$Target)-2, nchar(tab$Target))
+  target <- substr(df$Target, nchar(df$Target)-2, nchar(df$Target))
 
   # compute for each column
   subtract_multipos <- lapply(unique(target), function(tar){
-    cols.of.int <-  grep(tar, grep("Higher multipos corrected", names(tab), value=T), value=T)
-    res <- apply(tab[grepl(tar, tab$Target),cols.of.int], 1, sum, na.rm=TRUE)
+    cols.of.int <-  grep(tar, grep("Higher multipos corrected", names(df), value=T), value=T)
+    res <- apply(df[grepl(tar, df$Target),cols.of.int], 1, sum, na.rm=TRUE)
     return(res)
   })
 
-  tab[["Multipos corrected Mean Target/Mio cells"]] <- tab[["Mean Target/Mio cells"]] - quad_value_shear_corrected - unlist(subtract_multipos)
+  df[["Multipos corrected Mean Target/Mio cells"]] <- df[["Mean Target/Mio cells"]] - quad_value_shear_corrected - unlist(subtract_multipos)
   
-  tab[["Higher multipos corrected sum for all targets/Mio cells"]] <- 4 * mean(tab[["Multipos corrected Mean Target/Mio cells"]], na.rm=TRUE)
+  df[["Higher multipos corrected sum for all targets/Mio cells"]] <- 4 * mean(df[["Multipos corrected Mean Target/Mio cells"]], na.rm=TRUE)
   
   # TODO
-  tab[["total HIV DNA/Mio cells"]] <-  quad_value_shear_corrected + apply(tab[,grep("Higher multipos corrected", names(tab), value=TRUE)], 1, sum, na.rm=T)
-  return(tab)
+  df[["total HIV DNA/Mio cells"]] <-  quad_value_shear_corrected + apply(df[,grep("Higher multipos corrected", names(df), value=TRUE)], 1, sum, na.rm=T)
+  return(df)
 }
 
 # create results tables (equivalent to analysis sheet in manual xlsx analysis)
+#' Create analysis table for batch
+#' 
+#' Combine input data and compute analysis parameters for a group of wells (batch).
+#' @param batch The wells which are analysed together.
+#' @param conf_mat Confusion matrix (well vs. positives) for the batch.
+#' @param num_target The total number of targets.
+#' @param ch_dye Named list to match channel (names) with dyes (values).
+#' @param multi_pos The possible multiple positives.
+#' @param thresh The minimum number of accepted droplets in well to be included
+#' in the analysis.
+#' @param tar_mio_factor Factor to multiply Concentration with to obtain
+#' Target/Mio cells
+#' @param tab1 Data frame created in create_household_table().
+#' @return List with two elements: a data frame and a sting indicating the nature
+#' of the data sample (empty, H2O control, data)
+#' @export
 create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor, tab1){
   
   # create table of respective wells
@@ -262,7 +323,24 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
 
 
 # ====================== Execute ===============================================
-create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_mio_factor){
+#' Create analysis tables
+#' 
+#' Combine input data and do analysis.
+#' @param grouped_data Data frame that gives information per group of wells.
+#' Computed in define_groups()
+#' @param in_csv Data frame with information from csv input file. Output from 
+#' read_csv().
+#' @param ch_dye Named list to match channel (names) with dyes (values).
+#' @param multi_pos The possible multiple positives.
+#' @param thresh The minimum number of accepted droplets in well to be included
+#' in the analysis.
+#' @param tar_mio_factor Factor to multiply Concentration with to obtain
+#' Target/Mio cells
+#' @param tab1 Data frame created in create_household_table().
+#' @return 3 Lists containing the (1) data analysis, (2) confusion matrices, (3)
+#' the H2O samples.
+#' @export
+create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_mio_factor, tab1){
 
   # initialize empty lists to save output
   output_tables <- list()
@@ -276,9 +354,8 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
     sub_in_csv <- in_csv[in_csv$Well %in% group,]
     # remove columns with all na
     sub_in_csv <- sub_in_csv[, !apply(is.na(sub_in_csv), 2, all)]
-    # compute confusion matrix (for 4 or 5 target group)
+    # compute confusion matrix 
     # TODO: before conf_mat was computed once for all wells with the same targets
-    # TODO: check that it is independent
     # TODO: append appropriate conf matrices at the end
     conf_mat <- pivot_wider(sub_in_csv, id_cols = Well,
                             names_from = grep("Target", names(sub_in_csv), value = T),
@@ -320,7 +397,13 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
 
 # ======================== Beauty Output =======================================
 
-# create output with the key results (results sheet in manual analysis)
+#' Create analysis tables
+#' 
+#' Create an output sheet that collects the most important information.
+#' @param table Data frame computed in create_tables().
+#' @param multi_pos The possible multiple positives.
+#' @return A named vector as blueprint for a xlsx sheet.
+#' @export
 get_output_sheet <- function(table, multi_pos){
   
   # check if mean cells per reaction name matches sample description or if partial match is necessary
@@ -377,7 +460,17 @@ get_output_sheet <- function(table, multi_pos){
 
 # =================== Save to xlsx file =======================================
 
-# write information to xlsx file
+#' Write data to xlsx
+#' 
+#' Write finished analysis to a xlsx file
+#' @param output_tables List of data frames. Output from create_tables().
+#' @param conf_mats The computed confusion matrices.
+#' @param tab1 Data frame created in create_household_table().
+#' @param output_file File name (path) of the output file.
+#' @param h2o_table Data frame with H2O samples created in create_tables().
+#' @param multi_pos The possible multiple positives.
+#' @return No return value. Creates an xlsx file as output_file.
+#' @export
 write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table, multi_pos){
   l <- lapply(output_tables, get_output_sheet, multi_pos)
   output_sheet <- do.call(rbind.data.frame, l)

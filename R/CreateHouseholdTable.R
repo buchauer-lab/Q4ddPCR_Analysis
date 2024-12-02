@@ -1,19 +1,14 @@
-#' Create QC table
+#' Create RPP30 table
 #' 
-#' Create the dtQC table, which contains the relevant content from the xlsx file.
-#' @param xlsx_df The data frame created when reading the xlsx file.
-#' @param cols_of_int Columns that should be contained in dtQC. If not specified,
-#' a standard set of columns is kept. (optional)
-#' @param acc_drop_factor Numeric factor by which the threshold is computed from
-#' the accepted droplets. (default=3)
-#' @return The dtQC dataframe with the relevant columns.
+#' Create the RPP30 table to compute Shearing factor and mean RPP30(Shear) concentration.
+#' @param dtQC The data frame created in the Readers/read_files function.
+#' @param grouped_data Data frame created in define_groups function.
+#' @param thresh Minimum number of accepted droplets to include the well in the calculations.
+#' Other wise it will be removed during the process.
+#' @param mean_copies_factor Number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well # I guess should be named volume
+#' @param mean_cells_per_reac_factor Factor to multiply Mean copies/cell with to obtain Mean cells per reaction
+#' @return List with two elements: data frame with information about RPP30(Shear) and an updated grouped_data.
 #' @export
-create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3){
-
-}
-
-
-# create table with RPP30 and RPP30Shear controls
 create_household_table <- function(dtQC, grouped_data,
                                    thresh, mean_copies_factor, mean_cells_per_reac_factor){
   
@@ -83,7 +78,16 @@ create_household_table <- function(dtQC, grouped_data,
   return(list(tab1, grouped_data))
 }
 
-
+#' Define groups
+#' 
+#' Define the groups of Well that are analysed together. This is based upon the
+#' columns "Sample description 1" and "Target". If they are the same for two
+#' wells, they will be analysed together.
+#' @param dtQC The data frame created in the Readers/read_files function.
+#' @param dilution_factor The dilution factor will be applied to the concentration
+#' to correct for dilution during the experiment.
+#' @return grouped_data data frame, with basic information to each found group.
+#' @export
 define_groups <- function(dtQC, dilution_factor){
   # make one column per Well
   transformed_data <- dtQC[, c("Well" , "Sample description 1", "Target")] %>%
@@ -109,7 +113,12 @@ define_groups <- function(dtQC, dilution_factor){
   return(grouped_data)
 }
 
-# check if an object is a named vector
+#' Check if is named vector
+#' 
+#' Check if an object is a named vector
+#' @param obj The object to check
+#' @return Boolean
+#' @export
 is_named_vector <- function(obj) {
   # Check if the object is an atomic vector
   is_atomic_vector <- is.atomic(obj) && !is.null(obj)
@@ -121,30 +130,47 @@ is_named_vector <- function(obj) {
   is_atomic_vector && has_names
 }
 
-# function to add the dilution factor to the table
-add_dilution_factor <- function(tab, dilution_factor){
+#' Add dilution factor
+#' 
+#' Add the dilution factor to the table in define_groups. Gives warning if input objects do not match
+#' @param df The data frame the dilution factor should be added on.
+#' Must contain the column "Sample description 1".
+#' @param dilution_factor A named vector that matches sample description (name)
+#' with the used dilution factor (value).
+#' @return Data frame updated with dilution factor
+#' @export
+add_dilution_factor <- function(df, dilution_factor){
     # check if specified dilution factors match table
-    if(any(!(tab$`Sample description 1` %in% names(dilution_factor)))){
+    if(any(!(df$`Sample description 1` %in% names(dilution_factor)))){
       warning("Assuming 1 as dilution factor if not specified otherwise.")
-      if(any(!(names(dilution_factor) %in% tab1$`Sample description 1` ))){
+      if(any(!(names(dilution_factor) %in% df$`Sample description 1` ))){
         warning("Not all specified dilution factor names appear in sample description.
                 Please, check if this is expected.")
       }
-      dilution_factor[unique(tab$`Sample description 1`[!(tab$`Sample description 1` %in% names(dilution_factor))])] <- 1
+      dilution_factor[unique(df$`Sample description 1`[!(df$`Sample description 1` %in% names(dilution_factor))])] <- 1
     }
     # compute concentration
-    tab$`Dilution Factor` <- dilution_factor[tab$`Sample description 1`]
+    df$`Dilution Factor` <- dilution_factor[df$`Sample description 1`]
 
-  return(tab)
+  return(df)
 }
 
-# function to check if the number of droplets is above the minimum threshold
-sufficient_droplets <- function(tab, thresh, droplet_col="Accepted Droplets"){
-  if(any(tab[, droplet_col] < thresh)){
+#' Check for sufficient droplets
+#' 
+#' Check if the number of accepted droplets is above the minimum threshold.
+#' @param df The data frame that should be checked. Must contain the columns
+#'  "Well" and the one specified in droplet_col.
+#' @param thresh The threshold (minimum of accepted droplets).
+#' @param droplet_col The column containing the information about the accepted
+#' droplets (default: "Accepted Droplets")
+#' @return Data frame with Wells above the given threshold only.
+#' @export
+sufficient_droplets <- function(df, thresh, droplet_col="Accepted Droplets"){
+  if(any(df[, droplet_col] < thresh)){
     warning(paste0("Removed well(s): ", 
-                   paste(unique(tab$`Well`[tab[, droplet_col] < thresh]), collapse = ", "),
+                   paste(unique(df$`Well`[df[, droplet_col] < thresh]), collapse = ", "),
                    ": Less than ", thresh, " droplets."))
-    tab <- tab[tab[, droplet_col] >= thresh,]
+    df <- df[df[, droplet_col] >= thresh,]
   }
-  return(tab)
+  return(df)
 }

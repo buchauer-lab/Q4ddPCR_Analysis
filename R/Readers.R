@@ -4,7 +4,7 @@
 #' 
 #' Read the excel file (first sheet) of the input files
 #' @param filename Path to an existing xlsx file.
-#' @return Data frame with the contents of the xlsx file. NA valuess in
+#' @return Data frame with the contents of the xlsx file. NA values in
 #' concentration column are filled in with zeros.
 #' @export
 read_xlsx <- function(filename){
