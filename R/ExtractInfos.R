@@ -6,7 +6,8 @@
 library(readxl)
 library(tidyr)
 library(dplyr)
-#source("R/MultipPositives.R")
+source("R/MultipPositives.R")
+source("R/CreateHouseholdTable.R")
 
 # ====================== Define functions to calculate table ==================
 
@@ -199,7 +200,7 @@ compute_total_HIV <- function(tab, multi_pos){
 }
 
 # create results tables (equivalent to analysis sheet in manual xlsx analysis)
-create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor){
+create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor, tab1){
   
   # create table of respective wells
   tab <- merge(dtQC[dtQC$Well %in% batch, 1:8], conf_mat[conf_mat$Well %in% batch,], by="Well", all=T)
@@ -215,19 +216,12 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
   }
   
   # remove wells with less than x (7500) accepted droplets
-  if(any(tab$`Accepted Droplets` < thresh)){
-    warning(paste0("Removed well: ", 
-                   unique(tab$`Well`[tab$`Accepted Droplets` < thresh]),
-                   ". Less than ", thresh, " droplets. "))
+  tab <- sufficient_droplets(tab, thresh)
     
-    tab <- tab[tab$`Accepted Droplets` >= thresh,]
-    
-    # check if any Well left
-    if(nrow(tab) == 0){
-      return(list("", "empty"))
-    }
+  # check if any Well left after thresholding droplets
+  if(nrow(tab) == 0){
+    return(list("", "empty"))
   }
-  
   
   # do not compute values for H2O Wells
   if(unique(tab$`Sample description 1`) %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser")){
@@ -236,49 +230,25 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
   
   # add mean concentration and mean unsheared
   
-  # check if names of mean concentration and mean unsheared match
-  if(!all(names(mean_conc_household) == names(mean_unsheared))){
-    stop("Mean concentration of RPP30(Shear) and Mean unsheared are given for different Sample description.
-         If this is expected behaviour, please contact Mark.")
-  }
-  
   # check if sample description is in mean concentration household array
-  if(unique(tab$`Sample description 1`) %in% names(mean_conc_household)){
-    mean_RPP <- mean_conc_household[unique(tab$`Sample description 1`)]
-    mean_unsh <- mean_unsheared[unique(tab$`Sample description 1`)]
+  if(unique(tab$`Sample description 1`) %in% tab1$`Sample description 1`){
+    tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- unique(tab1[tab1$`Sample description 1` == unique(tab$`Sample description 1`), "Mean concentration RPP30 + RPP30Shear (copies/µL)"])[[1]]
+      #mean_conc_household[unique(tab$`Sample description 1`)]
+    tab$`Mean unsheared` <- unique(tab1[tab1$`Sample description 1` == unique(tab$`Sample description 1`), "Mean unsheared"])[[1]]
   } else{
-    # if not, check if there is a partial match in names
-    warning("Sample description not exactly matched in names for Mean RPP30(Shear) concentration and Mean unsheared.
-            Trying flexibel appraoch next.")
-    flex_name_bool <- unlist(lapply(names(mean_conc_household), grepl, unique(tab$`Sample description 1`)))
-    if(sum(flex_name_bool) != 1){
-      # abort if there is no partial match and ask user to fix data
-      stop("Flexibel approach failed. Make sure to match Sample descriptions for RPP samples and HIV-target samples.")
-    }
-    # print warning to show the partial match
-    warning(paste0("Matched Mean conc RPP/Mean unsheared name ", names(mean_conc_household[flex_name_bool]),
-                   " with sample description ", unique(tab$`Sample description 1`)))
-    mean_RPP <- mean_conc_household[flex_name_bool]
-    mean_unsh <- mean_unsheared[flex_name_bool]
+    # if not, stop procedure
+    stop("Sample description not exactly matched in names for Mean RPP30(Shear) concentration and Mean unsheared.
+         Make sure to match Sample descriptions for RPP samples and HIV-target samples.")
   }
-  
-  # add mean concentration and mean unsheared to table
-  tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- mean_RPP
-  tab$`Mean unsheared` <- mean_unsh
-  
+
   # compute Target per million cells
   tab <- tab %>%
     mutate(`Target/Mio cells` = tar_mio_factor * 10^6 * `Conc(copies/µL)`/(`Mean concentration RPP30 + RPP30Shear (copies/µL)`))
-  
-  # add temporary column with Well number (A09 -> 09)
-  tab <- arrange(tab, by=Target, Well)
- 
   
   # compute mean target per mio cells for each "group" (e.g. A09, B09, C09, D09)
   tab <- compute_groupwise_mean(tab, c("Target"), "Mean Target/Mio cells",
                                 "Target/Mio cells")
   
-
   # compute values for multiple positives for specified combinations
   for(multip in multi_pos){
     tab <- get_multi_pos(tab, multip, tar_mio_factor)
