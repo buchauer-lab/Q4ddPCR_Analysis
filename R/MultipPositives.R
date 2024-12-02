@@ -1,6 +1,6 @@
 # Function to return concentration of multiple positive samples (e.g. Env+Psi+ or quadrupel positive)
 get_multi_pos <- function(tab, genes, tar_mio_factor){
-  # check that genes are speicfied
+  # check that genes are specified
   if(is.null(genes)){
       stop("Need to specify genes to compute multiple positives.")
   }
@@ -11,10 +11,6 @@ get_multi_pos <- function(tab, genes, tar_mio_factor){
   # extract all column names of table that contain specified genes
   multi_pos_names <- grep(pattern, names(tab), value = TRUE, perl = TRUE)
 
-  # Check that only count columns are in, not previously computed multipos concentrations
-  # e.g., do not use "Env+Psi+Gag+Pol+ Intact Provirus" when computing "Env+Psi+ concentration"
-  multi_pos_names <- grep(" ", multi_pos_names, value = TRUE, invert = TRUE)
-  
   # get counts positive for target
   tar_pos <- unlist(apply(tab, 1, sum_target_positive_values))
   
@@ -27,6 +23,7 @@ get_multi_pos <- function(tab, genes, tar_mio_factor){
   # write concentration into table
   name <- paste0("Concentration ", paste(genes, collapse = "."),
                  " positive for target (copies/µl)")
+  
   if(length(conc_pos) != 0){
     tab[[name]] <- conc_pos
   } else{
