@@ -88,7 +88,7 @@ rm_channels <- function(df, channels){
          in the file.")
   }
   # remove
-  df <- df[!(df$Well %in% channel),]
+  df <- df[!(df$Well %in% channels),]
   
   # return
   return(df)
@@ -111,11 +111,11 @@ create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3){
   if(is.null(cols_of_int)){
   cols_of_int <- c("Well", "Sample description 1", "DyeName(s)", "Target", 
                    "Conc(copies/µL)", "Accepted Droplets", "Positives", 
-                   "Negatives", grep("Ch", names(in_xlsx), value = T))
+                   "Negatives", grep("Ch", names(xlsx_df), value = T))
   }
   
   # create sheet Data_table Quality Check (dtQC)
-  dtQC <- xlsx_file[,cols_of_int]
+  dtQC <- xlsx_df[,cols_of_int]
   
   # add threshold and number of total positives
   dtQC$Threshold <- dtQC$`Accepted Droplets`/acc_drop_factor
@@ -185,7 +185,7 @@ read_files <- function(xlsx_file,
   
   # read files
   in_csv <- read_csv(csv_file, csv_skip, csv_nrows)
-  in_xlsx <- read_xlsc(xlsx_file)
+  in_xlsx <- read_xlsx(xlsx_file)
   
   # remove specified channels
   if(!(is.null(remove_channel))){
