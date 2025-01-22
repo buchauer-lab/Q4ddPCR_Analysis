@@ -53,14 +53,15 @@ get_multi_pos <- function(df, genes, tar_mio_factor){
   
   # compute mean by (target and) well and write into df
   name2 <- paste0("Intact concentration ", paste(genes, collapse = "."), " (copies/µl)")
-  df <- compute_groupwise_mean(df, c(), name2,
-                                paste0("Mean ", name))
+  df <- compute_groupwise_mean(df, c(), name2, name)
   
   # compute intact provirus per million cells (and shearing corrected) and write into df
   name3 <- paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))
-  df[[name3]] <- tar_mio_factor * 10^6 * df[[name2]] / tdfab$`Mean concentration RPP30 + RPP30Shear (copies/µL)`
+  df[[name3]] <- tar_mio_factor * 10^6 * df[[name2]] / df$`Mean concentration RPP30 + RPP30Shear (copies/µL)`
+  df[[paste0("STD ", name3)]] <- abs(tar_mio_factor * 10^6 / df$`Mean concentration RPP30 + RPP30Shear (copies/µL)`) * df[[paste0("STD ", name2)]]
   df[!(rows_w_target), c(name2, name3)] = NA
   df[[paste0(name3, ", corrected for shearing")]] <- df[[name3]] / df$`Mean unsheared`
+  df[[paste0("STD " , name3, ", corrected for shearing")]] <- df[[paste0("STD ", name3)]] / df$`Mean unsheared`
   
   # return extended df
   return(df)

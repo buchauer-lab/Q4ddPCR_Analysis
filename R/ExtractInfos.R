@@ -125,13 +125,12 @@ sum_target_positive_values <- function(df){
 #' @return df updated by new_col.
 #' @export
 compute_groupwise_mean<- function(df, group_by, new_col, old_col){
-  
-  if(grepl("Mean", new_col)){
+  if(grepl("Mean|Intact", new_col)){
     df <- df %>%
       group_by_at(vars(!!!group_by)) %>%
       mutate(!!sym(new_col) :=
                mean(!!sym(old_col), na.rm = TRUE)) %>%
-      mutate(!!sym(sub("Mean", "STD", new_col)) :=
+      mutate(!!sym(paste0("STD ", new_col)) :=
                sd(!!sym(old_col), na.rm = TRUE)) %>%
       ungroup()
   } else{
@@ -244,6 +243,21 @@ compute_total_HIV <- function(df, multi_pos){
   return(df)
 }
 
+#' Compute total HIV content
+#' 
+#' Estimate the total HIV content by Env Psi content.
+#' @param df The data frame for whose column the total HIV content shall be computed
+#' @return Data frame df updated with new column.
+#' @export
+compute_total_HIV_envPsi <- function(df){
+  # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
+  env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
+  psi <- unique(df[grepl("Psi", df$Target), "Mean Target/Mio cells"])
+  envpsi <- unique(na.omit(df$`intact provirus/Mio cells Psi.Env, corrected for shearing`))
+  df[["total HIV DNA/Mio cells (Env.Psi)"]] <- unlist(unname(env + psi - envpsi))
+  return(df)
+}
+
 # create results tables (equivalent to analysis sheet in manual xlsx analysis)
 #' Create analysis table for batch
 #' 
@@ -266,6 +280,9 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
   # create table of respective wells
   tab <- merge(dtQC[dtQC$Well %in% batch, 1:8], conf_mat[conf_mat$Well %in% batch,], by="Well", all=T)
   tab <- Filter(function(x)!all(is.na(x)), tab)
+  
+  # get correct tar_mio_factor
+  tar_mio <- tar_mio_factor[unique(tab$`Sample description 1`)]
   
   # change names (from 1_0_0_0 to Gag+ etc)
   markers <- match_channel_gene(tab, ch_dye, num_target)
@@ -304,7 +321,7 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
 
   # compute Target per million cells
   tab <- tab %>%
-    mutate(`Target/Mio cells` = tar_mio_factor * 10^6 * `Conc(copies/µL)`/(`Mean concentration RPP30 + RPP30Shear (copies/µL)`))
+    mutate(`Target/Mio cells` = tar_mio * 10^6 * `Conc(copies/µL)`/(`Mean concentration RPP30 + RPP30Shear (copies/µL)`))
   
   # compute mean target per mio cells for each "group" (e.g. A09, B09, C09, D09)
   tab <- compute_groupwise_mean(tab, c("Target"), "Mean Target/Mio cells",
@@ -312,11 +329,13 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
   
   # compute values for multiple positives for specified combinations
   for(multip in multi_pos){
-    tab <- get_multi_pos(tab, multip, tar_mio_factor)
+    tab <- get_multi_pos(tab, multip, tar_mio)
   }
   
   tab <- compute_total_HIV(tab, multi_pos)
 
+  tab <- compute_total_HIV_envPsi(tab)
+  
   return(list(tab, "tab"))
 }
 
@@ -348,8 +367,9 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
   conf_mats <-  list()
   
   # loop over groups and run functions
-  for (group in lapply(grouped_data[is.na(grouped_data$RPP30), "shared_Wells"],
-                       function(x)(unlist(strsplit(x, ", "))))){
+  for (group in apply(grouped_data[is.na(grouped_data$RPP30), "shared_Wells"],
+                      1,
+                      function(x)(unname(unlist(strsplit(x, ", ")))))){
     # get relevant section of csv
     sub_in_csv <- in_csv[in_csv$Well %in% group,]
     # remove columns with all na
@@ -364,7 +384,6 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
 
     # get number of targets
     num_target <- length(grep("Target", names(sub_in_csv), value = T))
-    
     # check number of targets
     if(num_target < 4){
       warning("Less than 4 Targets detected. Skipping. If this is expexted 
@@ -375,7 +394,7 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
     # compute output tables (equivalent to analysis sheet in manual analysis)
 
     # create output table
-    out_table <- create_table(group, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor)
+    out_table <- create_table(group, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor, tab1)
     
     # save to water table if water control
     if(out_table[[2]] == "h2o"){
@@ -404,35 +423,24 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
 #' @param multi_pos The possible multiple positives.
 #' @return A named vector as blueprint for a xlsx sheet.
 #' @export
-get_output_sheet <- function(table, multi_pos){
-  
-  # check if mean cells per reaction name matches sample description or if partial match is necessary
-  if(unique(table$`Sample description 1`) %in% names(mean_cells_per_reac)){
-    desc <- names(mean_cells_per_reac[unique(table$`Sample description 1`)])
-  } else{
-    warning("Sample description not exactly matched in names for Mean RPP30(Shear) concentration and Mean unsheared.
-            Trying flexibel appraoch next.")
-    flex_name_bool <- unlist(lapply(names(mean_cells_per_reac), grepl, unique(table$`Sample description 1`)))
-    if(sum(flex_name_bool) != 1){
-      stop("Flexibel approach failed. Make sure to match Sample descriptions for RPP samples and HIV-target samples.")
-    }
-    warning(paste0("Matched Mean cells per reac name ", names(mean_cells_per_reac[flex_name_bool]),
-                   " with sample description ", unique(table$`Sample description 1`)))
-    desc <- names(mean_cells_per_reac[flex_name_bool])
-  }
+get_output_sheet <- function(table, multi_pos, grouped_data){
+
   # create output of single positives
+  sample <- unique(table$`Sample description 1`)
   output_sheet = c("Title" = paste(unique(table$Well), collapse = ", "),
-                   "Concentration probes" = unique(table$`Sample description 1`),
-                   "Number of cells analysed" = unname(round(mean_cells_per_reac[desc])),
-                   "Shearing Index" = unname(round(Shear_ind[desc], 2)),
-                   "Total HIV-DNA (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells"]])),
+                   "Sample" = sample,
+                   "Number of cells analysed" = pull(unique(round(grouped_data[grouped_data$`Sample description 1` == sample, "Mean cells per reaction"]))),
+                   "Shearing Index" = pull(unique(round(grouped_data[grouped_data$`Sample description 1` == sample, "Shearing index"], 2))),
+                   "Total HIV-DNA (4-based) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells"]])),
+                   "Total HIV-DNA (Env.Psi) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells (Env.Psi)"]])),
                    "Gag/Mio cells" = round(unique(table[grepl("Gag", table$Target), "Mean Target/Mio cells"])),
                    "Pol/Mio cells" = round(unique(table[grepl("Pol", table$Target), "Mean Target/Mio cells"])),
                    "Psi/Mio cells" = round(unique(table[grepl("Psi", table$Target), "Mean Target/Mio cells"])),
                    "Env/Mio cells" = round(unique(table[grepl("Env", table$Target), "Mean Target/Mio cells"])),
-                   "RU5/Mio cells" = ifelse(any(grepl("RU5", table$Target)),
-                                            round(unique(table[grepl("RU5", table$Target), "Mean Target/Mio cells"])),
-                                            NA)
+                   "Psi-defective" = round(unique(table[grepl("Psi", table$Target), "Mean Target/Mio cells"]) - 
+                                             unique(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]])),
+                   "Env-defective" = round(unique(table[grepl("Env", table$Target), "Mean Target/Mio cells"]) - 
+                                             unique(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]]))
                    )
   
   # loop over multiple positives and add to output
@@ -472,13 +480,13 @@ get_output_sheet <- function(table, multi_pos){
 #' @return No return value. Creates an xlsx file as output_file.
 #' @export
 write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table, multi_pos){
-  l <- lapply(output_tables, get_output_sheet, multi_pos)
+  l <- lapply(output_tables, get_output_sheet, multi_pos, grouped_data)
   output_sheet <- do.call(rbind.data.frame, l)
   
   
   output_list <- append(append(list(output_sheet), conf_mats), output_tables)
   output_list <- append(append(output_list, list(tab1)), h2o_table)
-  
+
   openxlsx::write.xlsx(output_list, output_file)  
 }
 

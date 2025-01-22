@@ -1,17 +1,17 @@
 
 # clear workspace
+setwd("..")
 source("R/ExtractInfos.R")
 source("R/CreateHouseholdTable.R")
 source("R/Readers.R")
 setwd("R/")
-setwd("..")
 
 # set arguments
-csv_file <- "../../data/Data14/20240807_GTG_.csv"
+csv_file <- "../../data/Data10/ClusterData2 3.csv"
 csv_skip <- 4 # number of rows before the table starts
-csv_nrows <- 261 - (csv_skip + 1) # number of rows in the table
-xlsx_file <- "../../data/Data14/20240807_GTG_.xlsx"
-output_file <- "../../data/Data14/Output.xlsx"
+csv_nrows <- 284 - (csv_skip + 1) # number of rows in the table
+xlsx_file <- "../../data/Data10/DataSheet19.06 1.xlsx"
+output_file <- "../../data/Data10/Output_22_1_25.xlsx"
 
 ch_dye <- c("Ch1" = "FAM",
             "Ch2" = "VIC",
@@ -19,7 +19,7 @@ ch_dye <- c("Ch1" = "FAM",
             "Ch5" = "ROX",
             "Ch6" = "ATTO590")
 
-custom_dilution_factor <- TRUE
+custom_dilution_factor <- FALSE
 
 dilution_factor <- c("112213 TP1" = 100,
                      "112213 tp2" = 100,
@@ -30,6 +30,7 @@ dilution_factor <- c("112213 TP1" = 100,
  #                    "gDNA 8E5" = 1)
 
 remove_channel <- c("A04","B04","C04","D04","C01","D01","C02","D02","C06","D06","C05","D05","A07","B07","C07","D07","E07","F07","G07","H07","E06","F06","G06","H06")
+remove_channel <- c("A08", "B08", "C08", "D08", "E08", "F08", "G08", "H08")
 rm_zero_channel_wells <- FALSE # remove wells that have concentration 0 for at least one channel
                               # will not remove H2O channels
 
@@ -37,12 +38,17 @@ compute_all_positives_for <- c("Psi", "Env", "Gag", "Pol")
 
 multi_positives <- get_multipos(compute_all_positives_for)
 
+tar_mio_factor <- c("gDNA 1 JLats in Mio Jurkat" = 1,
+                     "gDNA 200 JLats in Mio Jurkat" = 1,
+                     "gDNA 5 JLats in Mio Jurkat" = 1,
+                     "gDNA 50 JLats in Mio Jurkat" = 1,
+                     "gDNA 500 JLats in Mio Jurkat" = 1)
 
 # define minimum number of accepted droplets to continue with well
 threshold <- 7500
 mean_copies_factor <- 20 # number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well # I guess should be named volume
 mean_cells_per_reac_factor <- 2 # factor to multiply Mean copies/cell with to obtain Mean cells per reaction
-tar_mio_factor <- 2 # factor to multiply Concentration with to obtain Target/Mio cells (same for multiple positives)
+#tar_mio_factor <- 2 # factor to multiply Concentration with to obtain Target/Mio cells (same for multiple positives)
 # ================== execute functions =========================================
 # read files
 information <- read_files(xlsx_file, csv_file, csv_skip, csv_nrows, remove_channel, rm_zero_channel_wells)
@@ -53,19 +59,19 @@ dtQC <- information[[2]]
 grouped_data <- define_groups(dtQC, dilution_factor)
 
 # create standard table and values
-standards <- create_household_table(dtQC, grouped_data, thresh, mean_copies_factor, mean_cells_per_reac_factor)
+standards <- create_household_table(dtQC, grouped_data, threshold, mean_copies_factor, mean_cells_per_reac_factor)
 tab1 <- standards[[1]]
 grouped_data <- standards[[2]]
 
 # TODO: adapt below
 # create output tables
-#output <- create_tables(mat_groups, in_csv, groups, ch_dye, multi_positives, threshold, tar_mio_factor)
-#output_tables <- output[[1]]
-#conf_mats <- output[[2]]
-#h2o_tables <- output[[3]]
+output <- create_tables(grouped_data, in_csv, ch_dye, multi_positives, threshold, tar_mio_factor, tab1)
+output_tables <- output[[1]]
+conf_mats <- output[[2]]
+h2o_tables <- output[[3]]
 
 # write to xlsx file
-#write_output_file(output_tables, conf_mats, tab1, output_file, h2o_tables, multi_positives) 
+write_output_file(output_tables, conf_mats, tab1, output_file, h2o_tables, multi_positives) 
 
 
 
