@@ -39,21 +39,19 @@ read_xlsx <- function(filename){
 #' number mismatch in different rows.
 #' @return Data frame with the relevant data.
 #' @export
-read_csv <- function(filename, csv_skip, csv_end){
+read_csv <- function(filename, csv_skip){
   # check if file exists
   if(!file.exists(filename)){
     stop(paste0("Specified csv file ", filename, " does not exist. Please check if the path and name are correct and that there are no spelling mistakes."))
   }
-  
-  # compute csv nrows
-  csv_nrows <- csv_end - (csv_skip + 1)
-  
+
   # read csv
-  in_csv <- read.csv(filename, skip = csv_skip, row.names = NULL, 
-                     nrows = csv_nrows)
+  in_csv <- data.table::fread(filename, skip = csv_skip, fill=TRUE)
   
-  # remove shift in column names and resulting empty column at end
-  colnames(in_csv) <- colnames(in_csv)[2:ncol(in_csv)]
+  # remove second table
+  in_csv <- in_csv[1:which(in_csv$Well=="")[1],]
+  
+  # remove empty column due to commas at end of file
   in_csv <- in_csv[,1:(ncol(in_csv) -1)]
   
   # check if correct number of rows was read
@@ -179,12 +177,11 @@ rm_zero_channel <- function(dtQC, in_csv){
 read_files <- function(xlsx_file,
                        csv_file,
                        csv_skip,
-                       csv_nrows,
                        remove_channel = NULL,
                        rm_zero_channels = FALSE){
   
   # read files
-  in_csv <- read_csv(csv_file, csv_skip, csv_nrows)
+  in_csv <- read_csv(csv_file, csv_skip)
   in_xlsx <- read_xlsx(xlsx_file)
   
   # remove specified channels

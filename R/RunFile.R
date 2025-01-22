@@ -9,7 +9,6 @@ setwd("R/")
 # set arguments
 csv_file <- "../../data/Data10/ClusterData2 3.csv"
 csv_skip <- 4 # number of rows before the table starts
-csv_nrows <- 284 - (csv_skip + 1) # number of rows in the table
 xlsx_file <- "../../data/Data10/DataSheet19.06 1.xlsx"
 output_file <- "../../data/Data10/Output_22_1_25.xlsx"
 
