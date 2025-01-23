@@ -1,0 +1,7 @@
+Package: MultiplexPCRAnalyser
+Type: Package
+Title: Analysis of Outputs for Multiplex PCR
+Version: 0.0.1.0
+RoxygenNote: 7.3.2
+Encoding: UTF-8
+
