@@ -17,6 +17,7 @@ source("R/CreateHouseholdTable.R")
 #' Compute the possible combinations of genes based on the genes in an experiment.
 #' @param genes List of genes used in the experiment.
 #' @return List of possible combinations
+#' @export
 get_multipos <- function(genes){
   multi_pos <- list()
   

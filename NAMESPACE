@@ -3,7 +3,7 @@
 export(create_household_table)
 export(create_tables)
 export(define_groups)
-export(get_multi_pos)
+export(get_multipos)
 export(read_files)
 export(read_multiple_files)
 export(write_output_file)
