@@ -382,7 +382,7 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
     # compute confusion matrix 
     # TODO: before conf_mat was computed once for all wells with the same targets
     # TODO: append appropriate conf matrices at the end
-    conf_mat <- pivot_wider(sub_in_csv, id_cols = Well,
+    conf_mat <- tidyr::pivot_wider(sub_in_csv, id_cols = Well,
                             names_from = grep("Target", names(sub_in_csv), value = T),
                             values_from = Count,
                             values_fill = 0)
