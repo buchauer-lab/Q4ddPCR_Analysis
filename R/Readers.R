@@ -16,7 +16,7 @@ read_xlsx <- function(filename){
   }
   
   # read xlsx
-  in_xlsx <- readxl::read_xlsx(filename, sheet = 1)
+  in_xlsx <- openxlsx::read.xlsx(filename, sheet = 1, sep.names = " ")
   
   # adapt concentration column
   suppressWarnings(in_xlsx$`Conc(copies/µL)` <- as.numeric(in_xlsx$`Conc(copies/µL)`))
