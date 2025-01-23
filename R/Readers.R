@@ -6,7 +6,6 @@
 #' @param filename Path to an existing xlsx file.
 #' @return Data frame with the contents of the xlsx file. NA values in
 #' concentration column are filled in with zeros.
-#' @export
 read_xlsx <- function(filename){
   library(readxl)
   
@@ -38,7 +37,6 @@ read_xlsx <- function(filename){
 #' following table (in the expected input) will cause an error due to column
 #' number mismatch in different rows.
 #' @return Data frame with the relevant data.
-#' @export
 read_csv <- function(filename, csv_skip){
   # check if file exists
   if(!file.exists(filename)){
@@ -72,7 +70,6 @@ read_csv <- function(filename, csv_skip){
 #' output of reading the csv and the xlsx file each.
 #' @param channels Channels to remove (Well ID)
 #' @return Data frame without the specified channels
-#' @export
 rm_channels <- function(df, channels){
   
   # check if df has Well column
@@ -102,7 +99,6 @@ rm_channels <- function(df, channels){
 #' @param acc_drop_factor Numeric factor by which the threshold is computed from
 #' the accepted droplets. (default=3)
 #' @return The dtQC dataframe with the relevant columns.
-#' @export
 create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3){
   
   # add cols_of_int if necessary
@@ -130,7 +126,6 @@ create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3){
 #' @param dtQC Data frame created with create_dtQC.
 #' @param in_csv Data frame created with read_csv.
 #' @return List of data frames dtQC and in_csv without the defect channels.
-#' @export
 rm_zero_channel <- function(dtQC, in_csv){
   
   # check if expected columns exist

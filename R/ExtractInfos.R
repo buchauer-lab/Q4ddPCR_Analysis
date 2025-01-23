@@ -17,7 +17,6 @@ source("R/CreateHouseholdTable.R")
 #' Compute the possible combinations of genes based on the genes in an experiment.
 #' @param genes List of genes used in the experiment.
 #' @return List of possible combinations
-#' @export
 get_multipos <- function(genes){
   multi_pos <- list()
   
@@ -39,7 +38,6 @@ get_multipos <- function(genes){
 #' ("_").
 #' @param genes Vector of genes that were targeted for.
 #' @return Vector containing the transformed strings.
-#' @export
 transform_digits <- function(combination, genes) {
   
   # Split combination into individual digits
@@ -69,7 +67,6 @@ transform_digits <- function(combination, genes) {
 #' @param target The target the column names should be positive for.
 #' @param colnames The column names of a data frame.
 #' @return Vector containing the gene positive column names.
-#' @export
 extract_target_positive_colnames <- function(target, colnames){
   cols <- grep(target, colnames, value=T)
   return(grep(" ", cols, value=T, invert = T))
@@ -82,7 +79,6 @@ extract_target_positive_colnames <- function(target, colnames){
 #' @param ch_dye Named vector matching channels (names) with dyes (values).
 #' @param num_ch The number of channels used in total (must be 4 or 5).
 #' @return Vector of genes.
-#' @export
 match_channel_gene <- function(df, ch_dye, num_ch){
   genes <- c()
   for (dye in ch_dye){
@@ -108,7 +104,6 @@ match_channel_gene <- function(df, ch_dye, num_ch){
 #' Compute sum of all target positive values (including doublets, triplets, etc.)
 #' @param df Data frame with experiment information.
 #' @return Numeric: sum of all target positive values.
-#' @export
 sum_target_positive_values <- function(df){
   target <- substr(df["Target"], (nchar(df["Target"])-2), nchar(df["Target"]))
   cols <- extract_target_positive_colnames(target, names(df))
@@ -125,7 +120,6 @@ sum_target_positive_values <- function(df){
 #' @param old_col The name of the column the mean should be computed from.
 #' @import dplyr
 #' @return df updated by new_col.
-#' @export
 compute_groupwise_mean<- function(df, group_by, new_col, old_col){
   if(grepl("Mean|Intact", new_col)){
     df <- df %>%
@@ -152,7 +146,6 @@ compute_groupwise_mean<- function(df, group_by, new_col, old_col){
 #' @param multi_pos The multiple positive target.
 #' @return List of the possible subsets.
 #' @import dplyr
-#' @export
 get_subset <- function(multi_pos){
   # Initialize a list to store the subset relationships
   subset_list <- vector("list", length(multi_pos))
@@ -179,7 +172,6 @@ get_subset <- function(multi_pos){
 #' @param df The data frame for whose column the total HIV content shall be computed
 #' @param multi_pos List of multiple positives. #TODO: check again.
 #' @return Data frame df updated with new columns.
-#' @export
 compute_total_HIV <- function(df, multi_pos){
   # get length of multiple positives
   len_pos <- unlist(lapply(multi_pos, length))
@@ -251,7 +243,6 @@ compute_total_HIV <- function(df, multi_pos){
 #' Estimate the total HIV content by Env Psi content.
 #' @param df The data frame for whose column the total HIV content shall be computed
 #' @return Data frame df updated with new column.
-#' @export
 compute_total_HIV_envPsi <- function(df){
   # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
   env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
@@ -278,7 +269,6 @@ compute_total_HIV_envPsi <- function(df){
 #' @import dplyr
 #' @return List with two elements: a data frame and a sting indicating the nature
 #' of the data sample (empty, H2O control, data)
-#' @export
 create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh, tar_mio_factor, tab1){
   
   # create table of respective wells

@@ -6,7 +6,6 @@
 #' @param table Data frame computed in create_tables().
 #' @param multi_pos The possible multiple positives.
 #' @return A named vector as blueprint for a xlsx sheet.
-#' @export
 get_output_sheet <- function(table, multi_pos, grouped_data){
   
   # create output of single positives

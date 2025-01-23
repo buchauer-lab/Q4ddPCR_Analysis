@@ -120,7 +120,6 @@ define_groups <- function(dtQC, dilution_factor){
 #' Check if an object is a named vector
 #' @param obj The object to check
 #' @return Boolean
-#' @export
 is_named_vector <- function(obj) {
   # Check if the object is an atomic vector
   is_atomic_vector <- is.atomic(obj) && !is.null(obj)
@@ -140,7 +139,6 @@ is_named_vector <- function(obj) {
 #' @param dilution_factor A named vector that matches sample description (name)
 #' with the used dilution factor (value).
 #' @return Data frame updated with dilution factor
-#' @export
 add_dilution_factor <- function(df, dilution_factor){
     # check if specified dilution factors match table
     if(any(!(df$`Sample description 1` %in% names(dilution_factor)))){
@@ -166,7 +164,6 @@ add_dilution_factor <- function(df, dilution_factor){
 #' @param droplet_col The column containing the information about the accepted
 #' droplets (default: "Accepted Droplets")
 #' @return Data frame with Wells above the given threshold only.
-#' @export
 sufficient_droplets <- function(df, thresh, droplet_col="Accepted Droplets"){
   if(any(df[, droplet_col] < thresh)){
     warning(paste0("Removed well(s): ", 
