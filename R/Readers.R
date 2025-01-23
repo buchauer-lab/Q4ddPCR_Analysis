@@ -49,7 +49,7 @@ read_csv <- function(filename, csv_skip){
   in_csv <- data.table::fread(filename, skip = csv_skip, fill=TRUE)
   
   # remove second table
-  in_csv <- in_csv[1:which(in_csv$Well=="")[1],]
+  in_csv <- in_csv[1:which(in_csv$Well=="")[1]-1,]
   
   # remove empty column due to commas at end of file
   in_csv <- in_csv[,1:(ncol(in_csv) -1)]
@@ -167,9 +167,6 @@ rm_zero_channel <- function(dtQC, in_csv){
 #' @param csv_skip Number of lines in csv file that should not be read in, since
 #' they are before the actual table. Otherwise reading the file will return an
 #' error due to column number mismatch in different rows.
-#' @param csv_end Last row number in csv file with relevant data. Otherwise the
-#' following table (in the expected input) will cause an error due to column
-#' number mismatch in different rows.
 #' @param remove_channel List of channels that are to be removed. (optional)
 #' @param rm_zero_channels Boolean value to indicate whether defect channels, 
 #' i.e., channels with zero concentration are to be removed. (optional)
@@ -202,3 +199,81 @@ read_files <- function(xlsx_file,
     return(list(in_csv, dtQC))
   }
 }
+
+#' Read multiple files
+#' 
+#' Read a list of input xlsx and csv files to create the initial tables for the analysis.
+#' @param xlsx_files Vector with paths to existing xlsx_files.
+#' @param csv_files Vector with paths to existing csv_files.
+#' @param csv_skip Number of lines in csv file that should not be read in, since
+#' they are before the actual table. Otherwise reading the file will return an
+#' error due to column number mismatch in different rows. Same in every file.
+#' @param remove_channel List of lists of channels that are to be removed. Will
+#' be processed in the same order as the csv and xlsx files. (optional)
+#' @param rm_zero_channels Boolean value to indicate whether defect channels, 
+#' i.e., channels with zero concentration are to be removed. (optional)
+#' @export
+read_multiple_files <- function(xlsx_files,
+                                csv_files,
+                                csv_skip = 4,
+                                remove_channel = NULL,
+                                rm_zero_channels = FALSE){
+  # check that files match
+  if(length(xlsx_files) != length(csv_files)){
+    stop("There must be as many xlsx files as there are csv files.")
+  }
+  
+  print(csv_files)
+  print(xlsx_files)
+  
+  # lists to save outputs
+  all_csv <- list()
+  all_dtQC <- list()
+  
+  # save names of data frames
+  csv_names <- list()
+  dtQC_names <- list()
+  
+  # read each pair of files
+  for (i in 1:length(xlsx_files)) {
+    print(i)
+    print(csv_files)
+    print(csv_files[i])
+    if(is.null(remove_channel)){
+      tmp <- read_files(xlsx_files[i], csv_files[i], csv_skip, rm_zero_channels = rm_zero_channels)
+    } else{
+      tmp <- read_files(xlsx_files[i], csv_files[i], csv_skip, remove_channel = remove_channel[i],
+                        rm_zero_channels = rm_zero_channels)
+    }
+    
+    # get output
+    in_csv <- tmp[[1]]
+    dtQC <- tmp[[2]]
+    
+    # Make wells unique by adding plate number
+    in_csv$Well <- paste0(in_csv$Well, "_", i)
+    dtQC$Well <- paste0(dtQC$Well, "_", i)
+    
+    # save in lists
+    all_csv[[i]] <- in_csv
+    all_dtQC[[i]] <- dtQC
+    
+    csv_names[[i]] <- colnames(in_csv)
+    dtQC_names[[i]] <- colnames(dtQC)
+  }
+  # check that all lists have the same names
+  if(!(all(sapply(csv_names, function(x) identical(x, csv_names[[1]]))))){
+    stop("CSV files have different column names.")
+  }
+  if(!(all(sapply(dtQC_names, function(x) identical(x, dtQC_names[[1]]))))){
+    stop("CSV files have different column names.")
+  }
+  # combine lists
+  final_csv <- do.call(rbind, all_csv)
+  final_dtQC <- do.call(rbind, all_dtQC)
+  
+  return(list(final_csv, final_dtQC))
+}
+
+
+
