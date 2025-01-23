@@ -123,6 +123,7 @@ sum_target_positive_values <- function(df){
 #' @param group_by Column(s) by which the data should be grouped.
 #' @param new_col The name of the new column.
 #' @param old_col The name of the column the mean should be computed from.
+#' @import dplyr
 #' @return df updated by new_col.
 #' @export
 compute_groupwise_mean<- function(df, group_by, new_col, old_col){
@@ -150,6 +151,7 @@ compute_groupwise_mean<- function(df, group_by, new_col, old_col){
 #' Compute the possible subsets of a multiple positive target.
 #' @param multi_pos The multiple positive target.
 #' @return List of the possible subsets.
+#' @import dplyr
 #' @export
 get_subset <- function(multi_pos){
   # Initialize a list to store the subset relationships
@@ -273,6 +275,7 @@ compute_total_HIV_envPsi <- function(df){
 #' @param tar_mio_factor Factor to multiply Concentration with to obtain
 #' Target/Mio cells
 #' @param tab1 Data frame created in create_household_table().
+#' @import dplyr
 #' @return List with two elements: a data frame and a sting indicating the nature
 #' of the data sample (empty, H2O control, data)
 #' @export

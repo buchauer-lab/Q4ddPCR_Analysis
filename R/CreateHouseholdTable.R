@@ -7,6 +7,7 @@
 #' Other wise it will be removed during the process.
 #' @param mean_copies_factor Number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well # I guess should be named volume
 #' @param mean_cells_per_reac_factor Factor to multiply Mean copies/cell with to obtain Mean cells per reaction
+#' @import dplyr
 #' @return List with two elements: data frame with information about RPP30(Shear) and an updated grouped_data.
 #' @export
 create_household_table <- function(dtQC, grouped_data,
@@ -86,6 +87,7 @@ create_household_table <- function(dtQC, grouped_data,
 #' @param dtQC The data frame created in the Readers/read_files function.
 #' @param dilution_factor The dilution factor will be applied to the concentration
 #' to correct for dilution during the experiment.
+#' @import dplyr
 #' @return grouped_data data frame, with basic information to each found group.
 #' @export
 define_groups <- function(dtQC, dilution_factor){
