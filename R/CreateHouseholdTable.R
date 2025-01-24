@@ -93,7 +93,7 @@ create_household_table <- function(dtQC, grouped_data,
 define_groups <- function(dtQC, dilution_factor){
   # make one column per Well
   transformed_data <- dtQC[, c("Well" , "Sample description 1", "Target")] %>%
-    pivot_wider(names_from = Target, values_from = Target)
+    tidyr::pivot_wider(names_from = Target, values_from = Target)
   # find wells with same sample description and targets
   grouped_data <- transformed_data %>%
     group_by(across(names(transformed_data)[2:ncol(transformed_data)])) %>%
