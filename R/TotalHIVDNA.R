@@ -37,6 +37,7 @@ compute_total_HIV <- function(df){
     }
   }
   
+  substrings <- c("Env", "Gag", "Pol", "Psi")
   # get columns with 3 substrings
   columns_with_3_substrings <- grep("^intact(?!.*shearing)", names(df)[sapply(names(df), function(name) {
     # Count how many substrings are present in the column name
