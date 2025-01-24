@@ -11,26 +11,26 @@ compute_total_HIV <- function(df){
     name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Psi)(?=.*Env)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   } else if(any(grep("(?=.*Env\\+)(?=.*Gag\\+)(?=.*Psi\\+)", names(df), perl = TRUE))){
-    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Psi)(?=.*Env)(?=.*shearing)",
+    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Psi)(?=.*Env)(?!.*Pol)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   } else if(any(grep("(?=.*Env\\+)(?=.*Psi\\+)(?=.*Pol\\+)", names(df), perl = TRUE))){
-    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Psi)(?=.*Env)(?=.*shearing)",
+    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Psi)(?=.*Env)(?!.*Gag)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   } else if(any(grep("(?=.*Env\\+)(?=.*Psi\\+)", names(df), perl = TRUE))){
-    name <- grep("^intact provirus/Mio cells(?=.*Psi)(?=.*Env)(?=.*shearing)",
+    name <- grep("^intact provirus/Mio cells(?=.*Psi)(?=.*Env)(?!.*Pol)(?!.*Gag)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   } else if(any(grep("(?=.*Env\\+)(?=.*Gag\\+)(?=.*Pol\\+)", names(df), perl = TRUE))){
-    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Env)(?=.*shearing)",
+    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Env)(?!.*Psi)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   } else if(any(grep("(?=.*Env\\+)(?=.*Gag\\+)", names(df), perl = TRUE))){
-    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Env)(?=.*shearing)",
+    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Env)(?!.*Psi)(?!.*Pol)(?=.*shearing)",
                  names(df), value = TRUE, perl = TRUE)
   }
   # then extract value
   if(is.null(name)){
     quad <- 0
   } else{
-    quad <- unique(df[[name]])
+    quad <- na.omit(unique(df[[name]]))
     # check if length of value is correct
     if(length(quad) != 1){
       stop("Bug: length of quad must be one. Please contact maintainer.")
