@@ -167,92 +167,6 @@ get_subset <- function(multi_pos){
   return(subset_list)
 }
 
-#' Compute total HIV content
-#' 
-#' Compute the total HIV content as proposed by Rachel Scheck.
-#' @param df The data frame for whose column the total HIV content shall be computed
-#' @param multi_pos List of multiple positives. #TODO: check again.
-#' @return Data frame df updated with new columns.
-compute_total_HIV <- function(df, multi_pos){
-  # get length of multiple positives
-  len_pos <- unlist(lapply(multi_pos, length))
-  
-  # find which multiple positives are a subset of another one
-  subsets <- get_subset(multi_pos)
-
-  # check that there are multiple positives that need to be corrected
-  if(max(len_pos) < 2){
-    warning("Maximum number of genes in multiple positives is 2. Total HIV DNA
-            per Mio cells will not be computed")
-    return(df)
-  }
-  
-  # get shear corrected all positive value
-  quad_value_shear_corrected <- df[[paste0("intact provirus/Mio cells ",
-                                            paste(multi_pos[[which.max(len_pos)]], collapse = "."),
-                                            ", corrected for shearing")]]
-  # loop over the length of combinations
-  for (i in (max(len_pos)-1):2){
-    which_multipos <- which(len_pos == i)
-
-   # loop over all multi positives
-    for(comb in which_multipos){
-      # get gene names
-      genes <- multi_pos[[comb]]
-      # get name for new variable
-      name <- paste0("Higher multipos corrected ", paste(genes, collapse = "."))
-      # get value that needs to be corrected
-      original_value <- df[[paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))]]
-      # correct by all positive value
-      new_value = original_value - quad_value_shear_corrected
-      # correct by subsets if necessary
-      if(!is.null(subsets[[as.character(comb)]])){
-        for(subset in subsets[[as.character(comb)]]){
-          # substract subset value
-          subset_value <- df[[paste0("Higher multipos corrected ", paste(multi_pos[[subset]], collapse = "."))]]
-          #print(subset_value)
-          new_value = new_value - subset_value
-        }
-      }
-      # save new values to table
-      df[[name]] <- unique(na.omit(new_value))
-
-    }
-    
-  }
-  # correct for single positives
-  target <- substr(df$Target, nchar(df$Target)-2, nchar(df$Target))
-
-  # compute for each column
-  subtract_multipos <- lapply(unique(target), function(tar){
-    cols.of.int <-  grep(tar, grep("Higher multipos corrected", names(df), value=T), value=T)
-    res <- apply(df[grepl(tar, df$Target),cols.of.int], 1, sum, na.rm=TRUE)
-    return(res)
-  })
-
-  df[["Multipos corrected Mean Target/Mio cells"]] <- df[["Mean Target/Mio cells"]] - quad_value_shear_corrected - unlist(subtract_multipos)
-  
-  df[["Higher multipos corrected sum for all targets/Mio cells"]] <- 4 * mean(df[["Multipos corrected Mean Target/Mio cells"]], na.rm=TRUE)
-  
-  # TODO
-  df[["total HIV DNA/Mio cells"]] <-  quad_value_shear_corrected + apply(df[,grep("Higher multipos corrected", names(df), value=TRUE)], 1, sum, na.rm=T)
-  return(df)
-}
-
-#' Compute total HIV content
-#' 
-#' Estimate the total HIV content by Env Psi content.
-#' @param df The data frame for whose column the total HIV content shall be computed
-#' @return Data frame df updated with new column.
-compute_total_HIV_envPsi <- function(df){
-  # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
-  env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
-  psi <- unique(df[grepl("Psi", df$Target), "Mean Target/Mio cells"])
-  envpsi <- unique(na.omit(df$`intact provirus/Mio cells Psi.Env, corrected for shearing`))
-  df[["total HIV DNA/Mio cells (Env.Psi)"]] <- unlist(unname(env + psi - envpsi))
-  return(df)
-}
-
 # create results tables (equivalent to analysis sheet in manual xlsx analysis)
 #' Create analysis table for batch
 #' 
@@ -328,7 +242,7 @@ create_table <- function(batch, conf_mat, num_target, ch_dye, multi_pos, thresh,
     tab <- get_multi_pos(tab, multip, tar_mio)
   }
   
-  tab <- compute_total_HIV(tab, multi_pos)
+  tab <- compute_total_HIV(tab)
 
   tab <- compute_total_HIV_envPsi(tab)
   
