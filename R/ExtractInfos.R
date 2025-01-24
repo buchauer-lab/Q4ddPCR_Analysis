@@ -267,7 +267,8 @@ create_tables <- function(grouped_data, in_csv, ch_dye, multi_pos, thresh, tar_m
   # loop over groups and run functions
   for (group in apply(grouped_data[is.na(grouped_data$RPP30), "shared_Wells"],
                       1,
-                      function(x)(unname(unlist(strsplit(x, ", ")))))){
+                      function(x)(unname(strsplit(x, ", "))))){
+    group <- unlist(group)
     # get relevant section of csv
     sub_in_csv <- in_csv[in_csv$Well %in% group,]
     # remove columns with all na
