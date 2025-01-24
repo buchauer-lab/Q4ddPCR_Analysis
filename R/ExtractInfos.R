@@ -1,15 +1,3 @@
-# branch dev
-
-# extract relevant information from csv and xlsx file
-
-# load necessary packages
-library(readxl)
-library(tidyr)
-library(dplyr)
-source("R/MultipPositives.R")
-source("R/CreateHouseholdTable.R")
-
-
 # ====================== Define functions to calculate table ==================
 
 #' Get multiple positive combinations
