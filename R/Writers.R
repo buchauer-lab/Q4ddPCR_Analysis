@@ -66,8 +66,8 @@ write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_t
   l <- lapply(output_tables, get_output_sheet, multi_pos, grouped_data)
   output_sheet <- do.call(rbind.data.frame, l)
   
-  
-  output_list <- append(append(list(output_sheet), conf_mats), output_tables)
+  print(output_sheet)
+  output_list <- append(list(output_sheet), output_tables)
   output_list <- append(append(output_list, list(tab1)), h2o_table)
   
   openxlsx::write.xlsx(output_list, output_file)  
