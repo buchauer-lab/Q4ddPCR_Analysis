@@ -46,7 +46,17 @@ read_csv <- function(filename, csv_skip){
   in_csv <- data.table::fread(filename, skip = csv_skip, fill=TRUE)
   
   # remove second table
-  in_csv <- in_csv[1:which(in_csv$Well=="")[1]-1,]
+  if(is.null(in_csv$Well)){
+    stop("csv file must contain column Well.")
+  }
+  
+  # ensure that csv structure is as expected (two tables in one file)
+  if(!(is.na(which(in_csv$Well=="")[1]-1))){
+    in_csv <- in_csv[1:which(in_csv$Well=="")[1]-1,]  
+  } else{
+    warning("csv deviates from expected format. Trying to continue.")
+  }
+  
   
   # remove empty column due to commas at end of file
   in_csv <- in_csv[,1:(ncol(in_csv) -1)]
@@ -99,21 +109,20 @@ rm_channels <- function(df, channels){
 #' the accepted droplets. (default=3)
 #' @return The dtQC dataframe with the relevant columns.
 create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3){
-  
-  # add cols_of_int if necessary
   if(is.null(cols_of_int)){
-  cols_of_int <- c("Well", "Sample description 1", "DyeName(s)", "Target", 
-                   "Conc(copies/µL)", "Accepted Droplets", "Positives", 
-                   "Negatives", grep("Ch", names(xlsx_df), value = T))
+    cols_of_int <- c("Well", "Sample description 1", "DyeName(s)", "Target", 
+                     "Conc(copies/µL)", "Accepted Droplets", "Positives", 
+                     "Negatives", grep("Ch", names(xlsx_df), value = TRUE))
   }
   
-  # create sheet Data_table Quality Check (dtQC)
+  # Ensure all required columns exist
+  if(!all(cols_of_int %in% names(xlsx_df))){
+    stop("Some required columns are missing from the data frame.")
+  }
+  
   dtQC <- xlsx_df[,cols_of_int]
-  
-  # add threshold and number of total positives
-  dtQC$Threshold <- dtQC$`Accepted Droplets`/acc_drop_factor
-  dtQC$`Total positives` <- apply(dtQC[,grep("\\+", names(dtQC), value=T)], 1, sum)
-  
+  dtQC$Threshold <- dtQC$`Accepted Droplets` / acc_drop_factor
+  dtQC$`Total positives` <- apply(dtQC[,grep("\\+", names(dtQC), value=TRUE)], 1, sum)
   return(dtQC)
 }
 
@@ -187,7 +196,7 @@ read_files <- function(xlsx_file,
   
   # remove wells that have concentration zero for at least one well if specified
   if(rm_zero_channels){
-    out.list <- rm_zero_channels(dtQC, in_csv)
+    out.list <- rm_zero_channel(dtQC, in_csv)
     return(out.list)
   } else{
     return(list(in_csv, dtQC))
@@ -217,9 +226,6 @@ read_multiple_files <- function(xlsx_files,
     stop("There must be as many xlsx files as there are csv files.")
   }
   
-  print(csv_files)
-  print(xlsx_files)
-  
   # lists to save outputs
   all_csv <- list()
   all_dtQC <- list()
@@ -230,9 +236,6 @@ read_multiple_files <- function(xlsx_files,
   
   # read each pair of files
   for (i in 1:length(xlsx_files)) {
-    print(i)
-    print(csv_files)
-    print(csv_files[i])
     if(is.null(remove_channel)){
       tmp <- read_files(xlsx_files[i], csv_files[i], csv_skip, rm_zero_channels = rm_zero_channels)
     } else{
