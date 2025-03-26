@@ -23,7 +23,7 @@ error due to column number mismatch in different rows.}
 
 \item{remove_channel}{List of channels that are to be removed. (optional)}
 
-\item{rm_zero_channels}{Boolean value to indicate whether defect channels, 
+\item{rm_zero_channels}{Boolean value to indicate whether defect channels,
 i.e., channels with zero concentration are to be removed. (optional)}
 }
 \description{

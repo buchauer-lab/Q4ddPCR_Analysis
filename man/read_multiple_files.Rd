@@ -24,7 +24,7 @@ error due to column number mismatch in different rows. Same in every file.}
 \item{remove_channel}{List of lists of channels that are to be removed. Will
 be processed in the same order as the csv and xlsx files. (optional)}
 
-\item{rm_zero_channels}{Boolean value to indicate whether defect channels, 
+\item{rm_zero_channels}{Boolean value to indicate whether defect channels,
 i.e., channels with zero concentration are to be removed. (optional)}
 }
 \description{

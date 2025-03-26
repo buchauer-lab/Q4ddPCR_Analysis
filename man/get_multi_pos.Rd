@@ -9,7 +9,7 @@ get_multi_pos(df, genes, tar_mio_factor)
 \arguments{
 \item{df}{Data frame with the information on the measurement.}
 
-\item{genes}{The genes for which the sample should be positive 
+\item{genes}{The genes for which the sample should be positive
 (e.g., c("Env", "Psi") for Env+Psi+}
 
 \item{tar_mio_factor}{Factor to multiply Concentration with to obtain

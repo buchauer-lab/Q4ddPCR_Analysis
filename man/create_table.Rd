@@ -2,11 +2,13 @@
 % Please edit documentation in R/ExtractInfos.R
 \name{create_table}
 \alias{create_table}
-\title{Create analysis table for batch}
+\title{Compute the possible subsets of a multiple positive target.
+Create analysis table for batch}
 \usage{
 create_table(
   batch,
   conf_mat,
+  dtQC,
   num_target,
   ch_dye,
   multi_pos,
@@ -19,6 +21,8 @@ create_table(
 \item{batch}{The wells which are analysed together.}
 
 \item{conf_mat}{Confusion matrix (well vs. positives) for the batch.}
+
+\item{dtQC}{dtQC table created in the Readers/read_files function.}
 
 \item{num_target}{The total number of targets.}
 

@@ -16,6 +16,6 @@ transform_digits(combination, genes)
 Vector containing the transformed strings.
 }
 \description{
-Convert the binary digits of into the genes they represent (i.e., match 
+Convert the binary digits of into the genes they represent (i.e., match
 target from csv file to genes).
 }

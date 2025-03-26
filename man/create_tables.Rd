@@ -7,6 +7,7 @@
 create_tables(
   grouped_data,
   in_csv,
+  dtQC,
   ch_dye,
   multi_pos,
   thresh,
@@ -18,8 +19,10 @@ create_tables(
 \item{grouped_data}{Data frame that gives information per group of wells.
 Computed in define_groups()}
 
-\item{in_csv}{Data frame with information from csv input file. Output from 
+\item{in_csv}{Data frame with information from csv input file. Output from
 read_csv().}
+
+\item{dtQC}{dtQC table created in the Readers/read_files function.}
 
 \item{ch_dye}{Named list to match channel (names) with dyes (values).}
 
