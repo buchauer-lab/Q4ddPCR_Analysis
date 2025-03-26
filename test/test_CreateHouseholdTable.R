@@ -1,5 +1,5 @@
 #test functions in readers script
-source("./R/CreateHouseholdTable.R")
+source("../R/CreateHouseholdTable.R")
 library(testthat)
 
 # =============== test define_groups ===========================================

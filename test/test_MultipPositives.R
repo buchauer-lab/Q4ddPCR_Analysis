@@ -73,6 +73,11 @@ test_that("get_multi_pos works correctly", {
   expect_true(sum(is.na(df_result$`Concentration Env.Psi positive for target (copies/µl)`)) == 8)
   expect_true(sum(is.na(df_result$`Intact concentration Env.Psi (copies/µl)`)) == 8)
   expect_true(sum(is.na(df_result$`intact provirus/Mio cells Env.Psi`)) == 8)
+  
+  # get warning if not all genes appear as multiplets
+  expect_warning(get_multi_pos(df, c("Env", "Gag"), tar_mio_factor),
+                 "No multiple positives were found in data for:EnvGag",
+                 fixed=TRUE)
 
   # Check values are correct
   expect_equal(unique(na.omit(df_result$`Intact concentration Env.Psi (copies/µl)`)),
