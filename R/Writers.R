@@ -21,9 +21,9 @@ get_output_sheet <- function(table, multi_pos, grouped_data) {
     "Psi/Mio cells" = round(unique(table[grepl("Psi", table$Target), "Mean Target/Mio cells"])),
     "Env/Mio cells" = round(unique(table[grepl("Env", table$Target), "Mean Target/Mio cells"])),
     "Psi-defective" = round(unique(table[grepl("Psi", table$Target), "Mean Target/Mio cells"]) -
-      unique(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]])),
+      unique(na.omit(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]]))),
     "Env-defective" = round(unique(table[grepl("Env", table$Target), "Mean Target/Mio cells"]) -
-      unique(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]]))
+      unique(na.omit(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]])))
   )
 
   # loop over multiple positives and add to output
@@ -69,7 +69,6 @@ write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_t
   l <- lapply(output_tables, get_output_sheet, multi_pos, grouped_data)
   output_sheet <- do.call(rbind.data.frame, l)
 
-  print(output_sheet)
   output_list <- append(list(output_sheet), output_tables)
   output_list <- append(append(output_list, list(tab1)), h2o_table)
 

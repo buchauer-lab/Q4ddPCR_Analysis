@@ -41,7 +41,9 @@ compute_total_HIV <- function(df) {
   # then extract value
   if (is.null(name)) {
     quad <- 0
-  } else {
+  } else if(length(name) > 1){
+    stop("More than 1 column for Total HIV calculation selected.")
+  } else{
     quad <- na.omit(unique(df[[name]]))
     # check if length of value is correct
     if (length(quad) != 1) {
@@ -64,7 +66,7 @@ compute_total_HIV <- function(df) {
     sum(sapply(substrings, grepl, name)) == 2
   })], value = TRUE, perl = T)
   # compute triplet sum
-  doub <- sum(apply(df[, columns_with_3_substrings], 2, unique), na.rm = T)
+  doub <- sum(apply(df[, columns_with_2_substrings], 2, unique), na.rm = T)
 
   # compute for singlets
   sing <- sum(df[["Mean Target/Mio cells"]]) / 4
@@ -78,12 +80,28 @@ compute_total_HIV <- function(df) {
 #'
 #' Estimate the total HIV content by Env Psi content.
 #' @param df The data frame for whose column the total HIV content shall be computed
+#' @import dplyr
 #' @return Data frame df updated with new column.
 compute_total_HIV_envPsi <- function(df) {
+  # check for column names
+  if(!("Mean Target/Mio cells" %in% names(df))){
+    stop("No Mean Target/Mio cells detected")
+  }
+  
   # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
   env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
   psi <- unique(df[grepl("Psi", df$Target), "Mean Target/Mio cells"])
-  envpsi <- unique(na.omit(df$`intact provirus/Mio cells Psi.Env, corrected for shearing`))
+  if(!any(c("intact provirus/Mio cells Psi.Env, corrected for shearing",
+            "intact provirus/Mio cells Env.Psi, corrected for shearing") 
+          %in% names(df))){
+    warning("No Env+Psi+ detected. Will use 0.")
+    envpsi <- 0
+  } else{
+    envpsi <- unique(na.omit(df$`intact provirus/Mio cells Psi.Env, corrected for shearing`))
+    if(is.null(envpsi)){
+      envpsi <- unique(na.omit(df$`intact provirus/Mio cells Env.Psi, corrected for shearing`))
+    }
+  }
   df[["total HIV DNA/Mio cells (Env.Psi)"]] <- unlist(unname(env + psi - envpsi))
   return(df)
 }

@@ -28,9 +28,18 @@ get_multipos <- function(genes) {
 #' @param genes Vector of genes that were targeted for.
 #' @return Vector containing the transformed strings.
 transform_digits <- function(combination, genes) {
+  # check for input
+  if (is.null(combination)) {
+    stop("No binary digits given.")
+  }
+
   # Split combination into individual digits
   digits <- strsplit(combination, "_")[[1]]
 
+  # check for length mismatch
+  if (length(digits) != length(genes)) {
+    stop("Length of binary digits and input genes differ.")
+  }
   # Initialize empty vector to store object names
   positive_objects <- character(0)
 
@@ -57,6 +66,7 @@ transform_digits <- function(combination, genes) {
 #' @return Vector containing the gene positive column names.
 extract_target_positive_colnames <- function(target, colnames) {
   cols <- grep(target, colnames, value = T)
+  # remove spaces to not include column names that are added but where not part of the original data
   return(grep(" ", cols, value = T, invert = T))
 }
 
@@ -66,8 +76,14 @@ extract_target_positive_colnames <- function(target, colnames) {
 #' @param df Data frame with columns "DyeName(s)" and "Target".
 #' @param ch_dye Named vector matching channels (names) with dyes (values).
 #' @param num_ch The number of channels used in total (must be 4 or 5).
+#' @import dplyr
 #' @return Vector of genes.
 match_channel_gene <- function(df, ch_dye, num_ch) {
+  # check input format
+  if (is.null(df) || !all(c("DyeName(s)", "Target") %in% colnames(df))) {
+    stop("input df is not in right format")
+  }
+  # loop over dyes and match to gene
   genes <- c()
   for (dye in ch_dye) {
     gene <- df[df$"DyeName(s)" == dye, "Target"]
@@ -90,8 +106,18 @@ match_channel_gene <- function(df, ch_dye, num_ch) {
 #'
 #' Compute sum of all target positive values (including doublets, triplets, etc.)
 #' @param df Data frame with experiment information.
+#' @import dplyr
 #' @return Numeric: sum of all target positive values.
 sum_target_positive_values <- function(df) {
+  # check for column
+  if (is.null(df) || !"Target" %in% names(df)) {
+    stop("Data frame must contain a 'Target' column.")
+  }
+  # type check
+  if (!is.character(df[["Target"]])) {
+    stop("Target column must be of type character.")
+  }
+  # get Target
   target <- substr(df["Target"], (nchar(df["Target"]) - 2), nchar(df["Target"]))
   cols <- extract_target_positive_colnames(target, names(df))
   return(sum(as.numeric(df[cols]), na.rm = T))
@@ -108,6 +134,15 @@ sum_target_positive_values <- function(df) {
 #' @import dplyr
 #' @return df updated by new_col.
 compute_groupwise_mean <- function(df, group_by, new_col, old_col) {
+  # check input format
+  if (!all(c(old_col, group_by) %in% colnames(df))) {
+    stop("Specified columns must exist in the data frame.")
+  }
+  
+  if (!is.numeric(df[[old_col]])) {
+    stop("The column from which mean is computed must be numeric.")
+  }
+  # compute mean (by group)
   if (grepl("Mean|Intact", new_col)) {
     df <- df %>%
       group_by_at(vars(!!!group_by)) %>%
@@ -127,39 +162,40 @@ compute_groupwise_mean <- function(df, group_by, new_col, old_col) {
   return(df)
 }
 
-#' Get relevant subsets
+# TODO: Can probably be deleted, but I am to afraid yet
+## ' Get relevant subsets
 #'
 #' Compute the possible subsets of a multiple positive target.
-#' @param multi_pos The multiple positive target.
-#' @return List of the possible subsets.
-#' @import dplyr
-get_subset <- function(multi_pos) {
-  # Initialize a list to store the subset relationships
-  subset_list <- vector("list", length(multi_pos))
-  names(subset_list) <- seq_along(multi_pos)
+# #' @param multi_pos The multiple positive target.
+# #' @return List of the possible subsets.
+# #' @import dplyr
+#get_subset <- function(multi_pos) {
+#  # Initialize a list to store the subset relationships
+#  subset_list <- vector("list", length(multi_pos))
+#  names(subset_list) <- seq_along(multi_pos)
 
-  # Check which combinations are subsets of which other combinations
-  for (i in 1:(length(multi_pos) - 1)) {
-    subset_list[[i]] <- list()
-    for (j in 1:(length(multi_pos) - 1)) {
-      if (i != j) {
-        if (all(multi_pos[[i]] %in% multi_pos[[j]])) {
-          subset_list[[i]] <- c(subset_list[[i]], j)
-        }
-      }
-    }
-  }
-  subset_list <- lapply(subset_list, unlist)
-  return(subset_list)
-}
+#  # Check which combinations are subsets of which other combinations
+#  for (i in 1:(length(multi_pos) - 1)) {
+#    subset_list[[i]] <- list()
+#    for (j in 1:(length(multi_pos) - 1)) {
+#      if (i != j) {
+#        if (all(multi_pos[[i]] %in% multi_pos[[j]])) {
+#          subset_list[[i]] <- c(subset_list[[i]], j)
+#        }
+#      }
+#    }
+#  }
+#  subset_list <- lapply(subset_list, unlist)
+#  return(subset_list)
+#}
 
-# create results tables (equivalent to analysis sheet in manual xlsx analysis)
 #' Create analysis table for batch
 #'
 #' Combine input data and compute analysis parameters for a group of wells (batch).
 #' @param batch The wells which are analysed together.
 #' @param conf_mat Confusion matrix (well vs. positives) for the batch.
 #' @param dtQC dtQC table created in the Readers/read_files function.
+#' @param tab1 Table with RPP30(Shear) information.
 #' @param num_target The total number of targets.
 #' @param ch_dye Named list to match channel (names) with dyes (values).
 #' @param multi_pos The possible multiple positives.
@@ -175,6 +211,10 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
   # create table of respective wells
   tab <- merge(dtQC[dtQC$Well %in% batch, 1:8], conf_mat[conf_mat$Well %in% batch, ], by = "Well", all = T)
   tab <- Filter(function(x) !all(is.na(x)), tab)
+  
+  if(length(unique(tab$`Sample description 1`)) > 1){
+    stop("Sample description not exactly matched")
+  }
 
   # get correct tar_mio_factor
   tar_mio <- tar_mio_factor[unique(tab$`Sample description 1`)]
@@ -182,11 +222,6 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
   # change names (from 1_0_0_0 to Gag+ etc)
   markers <- match_channel_gene(tab, ch_dye, num_target)
   names(tab)[grepl("_", names(tab))] <- unname(sapply(grep("_", names(tab), value = T), transform_digits, markers))
-
-  # do not compute values for H2O Wells
-  if (unique(tab$`Sample description 1`) %in% c("h2o", "H2o", "h2O", "H2O", "water", "Water", "Wasser", "wasser")) {
-    return(list(tab, "h2o"))
-  }
 
   # remove wells with less than x (7500) accepted droplets
   tab <- sufficient_droplets(tab, thresh)
@@ -271,7 +306,7 @@ create_tables <- function(grouped_data, in_csv, dtQC, ch_dye, multi_pos, thresh,
   )) {
     group <- unlist(group)
     # get relevant section of csv
-    sub_in_csv <- in_csv[in_csv$Well %in% group, ]
+    sub_in_csv <- tibble(in_csv[in_csv$Well %in% group, ])
     # remove columns with all na
     sub_in_csv <- sub_in_csv[, !apply(is.na(sub_in_csv), 2, all)]
     # compute confusion matrix
@@ -283,7 +318,6 @@ create_tables <- function(grouped_data, in_csv, dtQC, ch_dye, multi_pos, thresh,
       values_from = Count,
       values_fill = 0
     )
-
     # get number of targets
     num_target <- length(grep("Target", names(sub_in_csv), value = T))
     # check number of targets

@@ -28,7 +28,8 @@ get_multi_pos <- function(df, genes, tar_mio_factor) {
   if(length(multi_pos_names) == 1){
     multi_pos <- sum(df[, multi_pos_names])
   } else if (length(multi_pos_names) == 0){
-    stop("No multiple positives were found in data.")
+    warning(paste("No multiple positives were found in data for:"), genes)
+    multi_pos <- 0
   } else{
     multi_pos <- apply(df[, multi_pos_names], 1, sum)
   }
