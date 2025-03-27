@@ -5,6 +5,7 @@
 #' Create an output sheet that collects the most important information.
 #' @param table Data frame computed in create_tables().
 #' @param multi_pos The possible multiple positives.
+#' @param grouped_data The grouped data obtained by define_groups().
 #' @return A named vector as blueprint for a xlsx sheet.
 get_output_sheet <- function(table, multi_pos, grouped_data) {
   # create output of single positives
