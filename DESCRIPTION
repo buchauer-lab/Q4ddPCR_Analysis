@@ -9,7 +9,7 @@ Authors@R: c(
   )
 Description: After running an Multiplex PCR to quantify the HIV reservoir,
     this package can be used to quickly analyse the created files.
-License: MIT license
+License: MIT + file LICENSE
 Imports:
     data.table,
     dplyr,
