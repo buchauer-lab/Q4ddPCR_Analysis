@@ -10,6 +10,8 @@ get_output_sheet(table, multi_pos, grouped_data)
 \item{table}{Data frame computed in create_tables().}
 
 \item{multi_pos}{The possible multiple positives.}
+
+\item{grouped_data}{The grouped data obtained by define_groups().}
 }
 \value{
 A named vector as blueprint for a xlsx sheet.
