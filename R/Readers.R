@@ -32,9 +32,6 @@ read_xlsx <- function(filename) {
 #' @param csv_skip Number of lines in csv file that should not be read in, since
 #' they are before the actual table. Otherwise reading the file will return an
 #' error due to column number mismatch in different rows.
-#' @param csv_end Last row number in csv file with relevant data. Otherwise the
-#' following table (in the expected input) will cause an error due to column
-#' number mismatch in different rows.
 #' @return Data frame with the relevant data.
 read_csv <- function(filename, csv_skip) {
   # check if file exists
