@@ -240,7 +240,7 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
 
   # check if sample description is in mean concentration household array
   if (unique(tab$`Sample description 1`) %in% tab1$`Sample description 1`) {
-    tab$`Mean concentration RPP30 + RPP30Shear (copies/µL)` <- unique(tab1[tab1$`Sample description 1` == unique(tab$`Sample description 1`), "Mean concentration RPP30 + RPP30Shear (copies/µL)"])[[1]]
+    tab$`Mean concentration RPP30 + RPP30Shear (copies/uL)` <- unique(tab1[tab1$`Sample description 1` == unique(tab$`Sample description 1`), "Mean concentration RPP30 + RPP30Shear (copies/uL)"])[[1]]
     # mean_conc_household[unique(tab$`Sample description 1`)]
     tab$`Mean unsheared` <- unique(tab1[tab1$`Sample description 1` == unique(tab$`Sample description 1`), "Mean unsheared"])[[1]]
   } else {
@@ -251,7 +251,7 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
 
   # compute Target per million cells
   tab <- tab %>%
-    mutate(`Target/Mio cells` = tar_mio * 10^6 * `Conc(copies/µL)` / (`Mean concentration RPP30 + RPP30Shear (copies/µL)`))
+    mutate(`Target/Mio cells` = tar_mio * 10^6 * `Conc(copies/uL)` / (`Mean concentration RPP30 + RPP30Shear (copies/uL)`))
 
   # compute mean target per mio cells for each "group" (e.g. A09, B09, C09, D09)
   tab <- compute_groupwise_mean(

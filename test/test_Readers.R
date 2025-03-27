@@ -64,7 +64,7 @@ test_that("create_dtQC extracts correct columns", {
                    `Sample description 1` = c("Sample1", "Sample2"),
                    `DyeName(s)` = c("FAM", "VIC"),
                    `Target` = c("Gene1", "Gene2"),
-                   `Conc(copies/µL)` = c(100, 200),
+                   `Conc(copies/uL)` = c(100, 200),
                    `Accepted Droplets` = c(3000, 6000),
                    `Positives` = c(150, 300),
                    `Negatives` = c(2850, 5700),
@@ -72,13 +72,13 @@ test_that("create_dtQC extracts correct columns", {
   
   result <- create_dtQC(df)
   expect_true(all(c("Well", "Sample description 1", "DyeName(s)", "Target", 
-                    "Conc(copies/µL)", "Accepted Droplets", "Positives", 
+                    "Conc(copies/uL)", "Accepted Droplets", "Positives", 
                     "Negatives", "Threshold", "Total positives") %in% names(result)))
 })
 
 test_that("create_dtQC correctly calculates threshold", {
   df <- data.frame(Well = c("A1"), `Sample description 1` = c("Sample1"), `DyeName(s)` = c("FAM"), 
-                   Target = c("Gene1"), `Conc(copies/µL)` = c(100), `Accepted Droplets` = c(3000),
+                   Target = c("Gene1"), `Conc(copies/uL)` = c(100), `Accepted Droplets` = c(3000),
                    Positives = c(150), Negatives = c(2850),
                    check.names = FALSE)
   result <- create_dtQC(df)
@@ -87,7 +87,7 @@ test_that("create_dtQC correctly calculates threshold", {
 
 test_that("create_dtQC correctly calculates total positives", {
   df <- data.frame(Well = c("A1"), `Sample description 1` = c("Sample1"), `DyeName(s)` = c("FAM"), 
-                   Target = c("Gene1"), `Conc(copies/µL)` = c(100), `Accepted Droplets` = c(3000),
+                   Target = c("Gene1"), `Conc(copies/uL)` = c(100), `Accepted Droplets` = c(3000),
                    Positives = c(150), Negatives = c(2850), `Ch1+Ch2+` = c(50), `Ch1-Ch2+` = c(100),
                    `Ch1-Ch2` = c(20),
                    check.names = FALSE)
@@ -104,7 +104,7 @@ test_that("create_dtQC stops when required columns are missing", {
 test_that("rm_zero_channel removes wells with zero concentration", {
   dtQC <- data.frame(Well = c("A1", "B2", "C3"), 
                      `Sample description 1` = c("Sample1", "Sample2", "Sample3"),
-                     `Conc(copies/µL)` = c(100, 0, 200),
+                     `Conc(copies/uL)` = c(100, 0, 200),
                      check.names = FALSE)
   in_csv <- data.frame(Well = c("A1", "B2", "C3"),
                        `Target 1`= c(0, 1, 2),
@@ -118,7 +118,7 @@ test_that("rm_zero_channel removes wells with zero concentration", {
 test_that("rm_zero_channel retains H2O wells", {
   dtQC <- data.frame(Well = c("A1", "B2", "C3"), 
                      `Sample description 1` = c("Sample1", "H2O", "Sample3"),
-                     `Conc(copies/µL)` = c(100, 0, 200),
+                     `Conc(copies/uL)` = c(100, 0, 200),
                      check.names = FALSE)
   in_csv <- data.frame(Well = c("A1", "B2", "C3"),
                        `Target 1`= c(0, 1, 2),
@@ -141,7 +141,7 @@ test_that("read_files reads and processes data correctly", {
   csv_data <- data.frame(Well = c("A1", "B2", "C3", ""), Value = c(10, 20, 30, ""),
                          empty = c(NA, NA, NA, NA))
   xlsx_data <- data.frame(Well = c("A1", "B2", "C3"),
-                          `Conc(copies/µL)` = c(100, 200, 300),
+                          `Conc(copies/uL)` = c(100, 200, 300),
                           `Sample description 1` = c("Sample1", "Sample2", "Sample3"),
                           `DyeName(s)` = c("x", "y", "z"),
                           `Target` = c("I", "am", "Groot"),
@@ -157,14 +157,14 @@ test_that("read_files reads and processes data correctly", {
   
   expect_true(is.list(result))
   expect_true(all(c("Well", "Value") %in% names(result[[1]])))
-  expect_true(all(c("Well", "Conc(copies/µL)", "Sample description 1") %in% names(result[[2]])))
+  expect_true(all(c("Well", "Conc(copies/uL)", "Sample description 1") %in% names(result[[2]])))
 })
 
 test_that("read_files removes specified channels", {
   csv_data <- data.frame(Well = c("A1", "B2", "C3", ""), Value = c(10, 20, 30, ""),
                          empty = c(NA, NA, NA, NA))
   xlsx_data <- data.frame(Well = c("A1", "B2", "C3"),
-                          `Conc(copies/µL)` = c(100, 200, 300),
+                          `Conc(copies/uL)` = c(100, 200, 300),
                           `Sample description 1` = c("Sample1", "Sample2", "Sample3"),
                           `DyeName(s)` = c("x", "y", "z"),
                           `Target` = c("I", "am", "Groot"),
@@ -186,7 +186,7 @@ test_that("read_files removes zero concentration channels when specified", {
   csv_data <- data.frame(Well = c("A1", "B2", "C3", ""), Value = c(10, 20, 30, ""),
                          empty = c(NA, NA, NA, NA))
   xlsx_data <- data.frame(Well = c("A1", "B2", "C3"),
-                          `Conc(copies/µL)` = c(100, 0, 300),
+                          `Conc(copies/uL)` = c(100, 0, 300),
                           `Sample description 1` = c("Sample1", "Sample2", "Sample3"),
                           `DyeName(s)` = c("x", "y", "z"),
                           `Target` = c("I", "am", "Groot"),
@@ -216,7 +216,7 @@ test_that("read_multiple_files processes multiple files correctly", {
     csv_data <- data.frame(Well = c("A1", "B2", "C3", ""), Value = c(10, 20, 30, ""),
                            empty = c(NA, NA, NA, NA))
     xlsx_data <- data.frame(Well = c("A1", "B2", "C3"),
-                            `Conc(copies/µL)` = c(100, 0, 300),
+                            `Conc(copies/uL)` = c(100, 0, 300),
                             `Sample description 1` = c("Sample1", "Sample2", "Sample3"),
                             `DyeName(s)` = c("x", "y", "z"),
                             `Target` = c("I", "am", "Groot"),

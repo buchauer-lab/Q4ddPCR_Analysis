@@ -35,27 +35,27 @@ create_household_table <- function(dtQC, grouped_data,
   # compute concentration corrected by dilution factor
   tab1 <- tab1 %>%
     mutate(
-      `Concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
-        `Dilution Factor` * `Conc(copies/µL)`
+      `Concentration RPP30 (corrected by dilutionfactor) (copies/uL)` =
+        `Dilution Factor` * `Conc(copies/uL)`
     )
 
   # compute mean concentrations (grouped by target and sample description)
   tab1 <- tab1 %>%
     group_by(Target, `Sample description 1`) %>%
     mutate(
-      `Mean concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
-        mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)
+      `Mean concentration RPP30 (corrected by dilutionfactor) (copies/uL)` =
+        mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/uL)`, na.rm = TRUE)
     ) %>%
     mutate(
-      `STD concentration RPP30 (corrected by dilutionfactor) (copies/µL)` =
-        sd(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)
+      `STD concentration RPP30 (corrected by dilutionfactor) (copies/uL)` =
+        sd(`Concentration RPP30 (corrected by dilutionfactor) (copies/uL)`, na.rm = TRUE)
     ) %>%
     ungroup() %>%
     # compute mean concentration of PRR30(Shear) (grouped by sample description)
     group_by(`Sample description 1`) %>%
     mutate(
-      `Mean concentration RPP30 + RPP30Shear (copies/µL)` =
-        mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/µL)`, na.rm = TRUE)
+      `Mean concentration RPP30 + RPP30Shear (copies/uL)` =
+        mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/uL)`, na.rm = TRUE)
     ) %>%
     ungroup()
 
@@ -80,7 +80,7 @@ create_household_table <- function(dtQC, grouped_data,
 
   # compute mean copies per well and mean cells per reaction
   tab1$`Mean copies/well` <- mean_copies_factor *
-    tab1$`Mean concentration RPP30 + RPP30Shear (copies/µL)`
+    tab1$`Mean concentration RPP30 + RPP30Shear (copies/uL)`
   tab1$`Mean cells per reaction` <- mean_cells_per_reac_factor *
     tab1$`Mean copies/well`
 
@@ -89,7 +89,7 @@ create_household_table <- function(dtQC, grouped_data,
     left_join(
       tab1 %>% select(
         `Sample description 1`,
-        `Mean concentration RPP30 + RPP30Shear (copies/µL)`,
+        `Mean concentration RPP30 + RPP30Shear (copies/uL)`,
         `Mean unsheared`,
         `Mean cells per reaction`,
         `Shearing index`

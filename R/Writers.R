@@ -28,7 +28,7 @@ get_output_sheet <- function(table, multi_pos, grouped_data) {
 
   # loop over multiple positives and add to output
   for (multip in multi_pos) {
-    name0 <- paste0("Intact concentration ", paste(multip, collapse = "."), " (copies/µl)")
+    name0 <- paste0("Intact concentration ", paste(multip, collapse = "."), " (copies/ul)")
     name1 <- paste0("intact provirus/Mio cells ", paste(multip, collapse = "."))
     name2 <- paste0(name1, ", corrected for shearing")
 

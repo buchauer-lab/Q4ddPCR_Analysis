@@ -55,8 +55,8 @@ test_that("extract_target_positive_colnames correctly extracts relevant columns"
   colnames <- c(
     "Env+", "Psi+", "Gag+", "Pol+",
     "Env+Psi+", "Psi+Pol+", "Gag+Pol+",
-    "Concentration Env.Psi positive for target (copies/µl)",
-    "Intact concentration Env.Psi (copies/µl)",
+    "Concentration Env.Psi positive for target (copies/ul)",
+    "Intact concentration Env.Psi (copies/ul)",
     "random_column"
   )
 
@@ -186,7 +186,7 @@ dtQC <- data.frame(
   Target = c(rep("Env", 4), rep("Psi", 4), rep("Gag", 4), rep("Pol", 4)),
   `DyeName(s)` = c(rep("VIC", 4), rep("Cy5", 4), rep("FAM", 4), rep("ATTO590", 4)),
   `Sample description 1` = rep("Sample1", 16),
-  `Conc(copies/µL)` = rep(1, 16),
+  `Conc(copies/uL)` = rep(1, 16),
   `Accepted Droplets` = rep(c(8000, 5000, 9000, 7000), 4), # does not have to be the same, but simplicity
   Positives = c(10, 0, 2, 4, 5, 2, 6, 4, 1, 4, 5, 6, 3, 4, 2, 1),
   Negatives = rep(c(7000, 5000, 8800, 4000), 4), # does not have to be the same, but simplicity
@@ -197,7 +197,7 @@ dtQC <- data.frame(
 
 tab1 <- data.frame(
   `Sample description 1` = c("Sample1", "Sample2"),
-  `Mean concentration RPP30 + RPP30Shear (copies/µL)` = c(10, 10),
+  `Mean concentration RPP30 + RPP30Shear (copies/uL)` = c(10, 10),
   `Mean unsheared` = c(0.5, 0.5),
   check.names = FALSE,
   stringsAsFactors = FALSE
@@ -272,7 +272,7 @@ dtQC <- data.frame(
   Target = c(rep("Env", 4), rep("Psi", 4), rep("Gag", 4), rep("Pol", 4)),
   `DyeName(s)` = c(rep("VIC", 4), rep("Cy5", 4), rep("FAM", 4), rep("ATTO590", 4)),
   `Sample description 1` = c(rep("Sample1", 8), rep("Sample2", 8)),
-  `Conc(copies/µL)` = rep(1, 16),
+  `Conc(copies/uL)` = rep(1, 16),
   `Accepted Droplets` = rep(c(8000, 5000, 9000, 7000), 4), # does not have to be the same, but simplicity
   Positives = c(10, 0, 2, 4, 5, 2, 6, 4, 1, 4, 5, 6, 3, 4, 2, 1),
   Negatives = rep(c(7000, 5000, 8800, 4000), 4), # does not have to be the same, but simplicity
@@ -283,7 +283,7 @@ dtQC <- data.frame(
 # Sample additional parameters
 tab1 <- data.frame(
   `Sample description 1` = c("Sample1", "Sample2"),
-  `Mean concentration RPP30 + RPP30Shear (copies/µL)` = c(10, 10),
+  `Mean concentration RPP30 + RPP30Shear (copies/uL)` = c(10, 10),
   `Mean unsheared` = c(0.5, 0.5),
   check.names = FALSE,
   stringsAsFactors = FALSE

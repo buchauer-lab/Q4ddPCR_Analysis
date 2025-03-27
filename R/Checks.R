@@ -30,7 +30,7 @@ is_dtQC <- function(dtQC) {
   # check if all required columns are present
   if (!all(c(
     "Well", "Sample description 1", "DyeName(s)", "Target",
-    "Conc(copies/µL)", "Accepted Droplets", "Positives",
+    "Conc(copies/uL)", "Accepted Droplets", "Positives",
     "Negatives", "Threshold", "Total positives"
   ) %in% colnames(dtQC))) {
     return(FALSE)

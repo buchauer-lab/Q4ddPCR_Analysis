@@ -16,8 +16,9 @@ read_xlsx <- function(filename) {
   in_xlsx <- openxlsx::read.xlsx(filename, sheet = 1, sep.names = " ")
 
   # adapt concentration column
-  suppressWarnings(in_xlsx$`Conc(copies/µL)` <- as.numeric(in_xlsx$`Conc(copies/µL)`))
-  in_xlsx$`Conc(copies/µL)`[is.na(in_xlsx$`Conc(copies/µL)`)] <- 0
+  conc_col <- grep("Conc", names(in_xlsx), value = TRUE) # Cannot match exact name: as mu is non ASCII character
+  suppressWarnings(in_xlsx$`Conc(copies/uL)` <- as.numeric(in_xlsx[[conc_col]]))
+  in_xlsx$`Conc(copies/uL)`[is.na(in_xlsx$`Conc(copies/uL)`)] <- 0
 
   # return
   return(in_xlsx)
@@ -110,7 +111,7 @@ create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3) {
   if (is.null(cols_of_int)) {
     cols_of_int <- c(
       "Well", "Sample description 1", "DyeName(s)", "Target",
-      "Conc(copies/µL)", "Accepted Droplets", "Positives",
+      "Conc(copies/uL)", "Accepted Droplets", "Positives",
       "Negatives", grep("Ch", names(xlsx_df), value = TRUE)
     )
   }
@@ -136,15 +137,15 @@ create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3) {
 #' @return List of data frames dtQC and in_csv without the defect channels.
 rm_zero_channel <- function(dtQC, in_csv) {
   # check if expected columns exist
-  if (is.null(dtQC$`Conc(copies/µL)`)) {
-    stop("No concentration column 'Conc(copies/µl)' found in dtQC. Please run create_dtQC first.")
+  if (is.null(dtQC$`Conc(copies/uL)`)) {
+    stop("No concentration column 'Conc(copies/ul)' found in dtQC. Please run create_dtQC first.")
   }
   if (is.null(dtQC$`Sample description 1`)) {
     stop("No 'Sample description 1' column found in dtQC. Please run create_dtQC first.")
   }
 
   # get zero channels without H20 channels
-  zero_ch <- unique(dtQC$Well[(dtQC$`Conc(copies/µL)` == 0) &
+  zero_ch <- unique(dtQC$Well[(dtQC$`Conc(copies/uL)` == 0) &
     !(dtQC$`Sample description 1` %in% c("h2o", "H2o", "h2O", "H2O"))])
 
   # make warning if there are zero channels

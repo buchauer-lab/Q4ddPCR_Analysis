@@ -156,7 +156,7 @@ test_that("create_household_table correctly computes the table and grouped data"
                                "Sample2", "Sample2", "Sample2", "Sample2"),
     Target = c("RPP30", "RPP30Shear", "RPP30", "RPP30Shear", 
                "RPP30", "RPP30Shear", "RPP30", "RPP30Shear"),
-    `Conc(copies/µL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
+    `Conc(copies/uL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
     `Ch1+Ch2+` = c(1000, 1200, 800, 900, 1000, 1200, 800, 900),
     `Ch1+Ch2-` = c(300, 320, 250, 270, 300, 320, 250, 270),
     `Ch1-Ch2+` = c(200, 220, 180, 190, 200, 220, 180, 190),
@@ -188,12 +188,12 @@ test_that("create_household_table correctly computes the table and grouped data"
   
   # Tests
   expect_equal(nrow(tab1), 8)  # All 4 rows should be included as droplets > thresh
-  expect_true("Mean concentration RPP30 + RPP30Shear (copies/µL)" %in% colnames(tab1))  # Check if mean concentration is calculated
+  expect_true("Mean concentration RPP30 + RPP30Shear (copies/uL)" %in% colnames(tab1))  # Check if mean concentration is calculated
   expect_true("Shearing index" %in% colnames(tab1))  # Check if shearing index is calculated
   expect_true("Mean cells per reaction" %in% colnames(tab1))  # Check if cells per reaction is calculated
   
   # Check that grouped_data is updated with the expected columns
-  expect_true("Mean concentration RPP30 + RPP30Shear (copies/µL)" %in% colnames(grouped_data_updated))
+  expect_true("Mean concentration RPP30 + RPP30Shear (copies/uL)" %in% colnames(grouped_data_updated))
   expect_true("Mean unsheared" %in% colnames(grouped_data_updated))
   expect_true("Mean cells per reaction" %in% colnames(grouped_data_updated))
 })
@@ -206,7 +206,7 @@ test_that("create_household_table removes wells with insufficient droplets", {
                                "Sample2", "Sample2", "Sample2", "Sample2"),
     Target = c("RPP30", "RPP30Shear", "RPP30", "RPP30Shear", 
                "RPP30", "RPP30Shear", "RPP30", "RPP30Shear"),
-    `Conc(copies/µL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
+    `Conc(copies/uL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
     `Ch1+Ch2+` = c(1000, 1200, 800, 900, 1000, 1200, 800, 900),
     `Ch1+Ch2-` = c(300, 320, 250, 270, 300, 320, 250, 270),
     `Ch1-Ch2+` = c(200, 220, 180, 190, 200, 220, 180, 190),
@@ -252,7 +252,7 @@ test_that("create_household_table computes correct shearing index", {
                                "Sample2", "Sample2", "Sample2", "Sample2"),
     Target = c("RPP30", "RPP30Shear", "RPP30", "RPP30Shear", 
                "RPP30", "RPP30Shear", "RPP30", "RPP30Shear"),
-    `Conc(copies/µL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
+    `Conc(copies/uL)` = c(100, 150, 200, 250, 100, 150, 200, 250),
     `Ch1+Ch2+` = c(1000, 1200, 800, 900, 1000, 1200, 800, 900),
     `Ch1+Ch2-` = c(300, 320, 250, 270, 300, 320, 250, 270),
     `Ch1-Ch2+` = c(200, 220, 180, 190, 200, 220, 180, 190),

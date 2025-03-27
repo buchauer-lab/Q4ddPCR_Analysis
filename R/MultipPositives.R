@@ -35,12 +35,12 @@ get_multi_pos <- function(df, genes, tar_mio_factor) {
   }
 
   # compute concentration
-  conc_pos <- df$`Conc(copies/µL)` * as.vector(unlist(multi_pos)) / tar_pos
+  conc_pos <- df$`Conc(copies/uL)` * as.vector(unlist(multi_pos)) / tar_pos
 
   # write concentration into df
   name <- paste0(
     "Concentration ", paste(genes, collapse = "."),
-    " positive for target (copies/µl)"
+    " positive for target (copies/ul)"
   )
 
   if (length(conc_pos) != 0) {
@@ -62,13 +62,13 @@ get_multi_pos <- function(df, genes, tar_mio_factor) {
   )
 
   # compute mean by (target and) well and write into df
-  name2 <- paste0("Intact concentration ", paste(genes, collapse = "."), " (copies/µl)")
+  name2 <- paste0("Intact concentration ", paste(genes, collapse = "."), " (copies/ul)")
   df <- compute_groupwise_mean(df, c(), name2, name)
 
   # compute intact provirus per million cells (and shearing corrected) and write into df
   name3 <- paste0("intact provirus/Mio cells ", paste(genes, collapse = "."))
-  df[[name3]] <- tar_mio_factor * 10^6 * df[[name2]] / df$`Mean concentration RPP30 + RPP30Shear (copies/µL)`
-  df[[paste0("STD ", name3)]] <- abs(tar_mio_factor * 10^6 / df$`Mean concentration RPP30 + RPP30Shear (copies/µL)`) * df[[paste0("STD ", name2)]]
+  df[[name3]] <- tar_mio_factor * 10^6 * df[[name2]] / df$`Mean concentration RPP30 + RPP30Shear (copies/uL)`
+  df[[paste0("STD ", name3)]] <- abs(tar_mio_factor * 10^6 / df$`Mean concentration RPP30 + RPP30Shear (copies/uL)`) * df[[paste0("STD ", name2)]]
   df[!(rows_w_target), c(name2, name3)] <- NA
   df[[paste0(name3, ", corrected for shearing")]] <- df[[name3]] / df$`Mean unsheared`
   df[[paste0("STD ", name3, ", corrected for shearing")]] <- df[[paste0("STD ", name3)]] / df$`Mean unsheared`
