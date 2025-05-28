@@ -14,29 +14,24 @@ get_multi_pos <- function(df, genes, tar_mio_factor) {
   if (is.null(genes)) {
     stop("Need to specify genes to compute multiple positives.")
   }
-
   # create pattern to ask whether string contains all specified genes in arbitrary order
   pattern <- paste(paste0("(?=.*", genes, "\\+)"), collapse = "")
-
   # extract all column names of df that contain specified genes
   multi_pos_names <- grep(pattern, names(df), value = TRUE, perl = TRUE)
-
   # get counts positive for target
   tar_pos <- unlist(apply(df, 1, sum_target_positive_values))
-
   # get counts for multiple positives
   if(length(multi_pos_names) == 1){
-    multi_pos <- sum(df[, multi_pos_names])
+    multi_pos <- df[, multi_pos_names]
   } else if (length(multi_pos_names) == 0){
-    warning(paste("No multiple positives were found in data for:"), genes)
+    warning(paste("No multiple positives were found in data for:"), genes,
+            " in well(s): ", paste(unique(df$Well), collapse=", "))
     multi_pos <- 0
   } else{
     multi_pos <- apply(df[, multi_pos_names], 1, sum)
   }
-
   # compute concentration
   conc_pos <- df$`Conc(copies/uL)` * as.vector(unlist(multi_pos)) / tar_pos
-
   # write concentration into df
   name <- paste0(
     "Concentration ", paste(genes, collapse = "."),
@@ -48,7 +43,6 @@ get_multi_pos <- function(df, genes, tar_mio_factor) {
   } else {
     df[[name]] <- 0
   }
-
   # set NA to zero and not used Wells (Target not in multiple positive included) to NaN
   rows_w_target <- Reduce("|", lapply(genes, function(x) (grepl(x, df$Target))))
   df[is.na(df[, name]), name] <- 0
