@@ -217,7 +217,14 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
   }
 
   # get correct tar_mio_factor
-  tar_mio <- tar_mio_factor[unique(tab$`Sample description 1`)]
+  if(unique(tab$`Sample description 1`) %in% names(tar_mio_factor)){
+    tar_mio <- tar_mio_factor[unique(tab$`Sample description 1`)]
+  } else{
+    warning(paste0("tar_mio_factor not specified for sample ",
+                   unique(tab$`Sample description 1`), 
+                   ". Will be set to 1."))
+    tar_mio <-1
+  }
 
   # change names (from 1_0_0_0 to Gag+ etc)
   markers <- match_channel_gene(tab, ch_dye, num_target)
@@ -252,7 +259,7 @@ create_table <- function(batch, conf_mat, dtQC, num_target, ch_dye, multi_pos, t
   # compute Target per million cells
   tab <- tab %>%
     mutate(`Target/Mio cells` = tar_mio * 10^6 * `Conc(copies/uL)` / (`Mean concentration RPP30 + RPP30Shear (copies/uL)`))
-
+  
   # compute mean target per mio cells for each "group" (e.g. A09, B09, C09, D09)
   tab <- compute_groupwise_mean(
     tab, c("Target"), "Mean Target/Mio cells",
