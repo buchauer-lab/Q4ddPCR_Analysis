@@ -74,6 +74,18 @@ create_household_table <- function(dtQC, grouped_data,
         sd(`unsheared`, na.rm = TRUE)
     ) %>%
     ungroup()
+  
+  # Check if mean unsheared is 0 for some wells
+  if(any(tab1$`Mean unsheared` == 0)){
+    warning(paste0(
+      "Mean unsheared is 0 for Wells: ", paste(unique(tab1$Well[tab1$`Mean unsheared` == 0]), collapse = ", "),
+      ".
+      Likely through all zeros for the Ch1+Ch2+ column in the input xlsx file. 
+      The values will set to 1, i.e., no shearing correction will take place for
+      the specified wells."
+    ))
+    tab1$`Mean unsheared`[tab1$`Mean unsheared` == 0] = 1
+  }
 
   # compute shearing index
   tab1$`Shearing index` <- 1 - tab1$`Mean unsheared`
