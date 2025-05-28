@@ -46,11 +46,13 @@ compute_total_HIV <- function(df) {
   } else{
     quad <- na.omit(unique(df[[name]]))
     # check if length of value is correct
-    if (length(quad) != 1) {
+    if(length(quad) == 0){
+      warning("Quadruple positives were all NA and are set to 0.")
+      quad <- 0
+    } else if (length(quad) > 1) {
       stop("Bug: length of quad must be one. Please contact maintainer.")
     }
   }
-
   substrings <- c("Env", "Gag", "Pol", "Psi")
   # get columns with 3 substrings
   columns_with_3_substrings <- grep("^intact(?!.*shearing)", names(df)[sapply(names(df), function(name) {
