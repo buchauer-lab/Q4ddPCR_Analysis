@@ -12,3 +12,5 @@ The package can be installed via
 It is called "MultiplexPCRAnalyser".
 
 Please cite [paper once published] when using the package.
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15791355.svg)](https://doi.org/10.5281/zenodo.15791355)
