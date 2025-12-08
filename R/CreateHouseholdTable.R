@@ -18,7 +18,7 @@ create_household_table <- function(dtQC, grouped_data,
     stop("No Wells with target Rpp30 or Rpp30Shear detected.")
   }
 
-  # remove Wells with less than x (7500) accepted droplets
+  # remove Wells with less than x (default: 7500) accepted droplets
   tab1 <- sufficient_droplets(tab1, thresh)
   if (nrow(tab1) == 0) {
     stop("No Wells with target Rpp30 or Rpp30Shear and >thresh droplets detected.")

@@ -71,7 +71,9 @@ compute_total_HIV <- function(df) {
   doub <- sum(apply(df[, columns_with_2_substrings], 2, unique), na.rm = T)
 
   # compute for singlets
-  sing <- sum(df[["Mean Target/Mio cells"]]) / 4
+  # old and wrong: sing <- sum(df[["Mean Target/Mio cells"]]) / 4
+  # new:
+  sing <- sum(unique(df[["Mean Target/Mio cells"]]))
 
   # Compute total HIV DNA / Mio cells
   df[["total HIV DNA/Mio cells"]] <- sing - doub + trip - quad

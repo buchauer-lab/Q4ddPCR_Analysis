@@ -1,7 +1,7 @@
 Type: Package
 Package: MultiplexPCRAnalyser
 Title: Analysis of Outputs for Multiplex PCR
-Version: 0.0.1.1
+Version: 0.0.1.2
 Authors@R: c(
     person("Mark", "Melzer", , "mark.melzer@charite.de", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0006-3573-0531")),
