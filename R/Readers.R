@@ -64,6 +64,9 @@ read_csv <- function(filename, csv_skip) {
     stop(paste0("Too many rows from csv are read. Potentially ", l, " too many."))
   }
 
+  # remove empty columns if existing
+  in_csv <- in_csv[, !apply(is.na(in_csv), 2, all)]
+  
   # return
   return(in_csv)
 }

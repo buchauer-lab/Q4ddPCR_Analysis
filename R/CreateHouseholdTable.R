@@ -10,38 +10,20 @@
 #' @import dplyr
 #' @return List with two elements: data frame with information about RPP30(Shear) and an updated grouped_data.
 #' @export
-create_household_table <- function(dtQC, grouped_data,
-                                   thresh, mean_copies_factor, mean_cells_per_reac_factor) {
-  # compute RPP30(Shear) table
-  tab1 <- arrange(dtQC[dtQC$Target %in% c("RPP30", "RPP30Shear"), ], Target)
-  if (nrow(tab1) == 0) {
-    stop("No Wells with target Rpp30 or Rpp30Shear detected.")
-  }
-
-  # remove Wells with less than x (default: 7500) accepted droplets
-  tab1 <- sufficient_droplets(tab1, thresh)
-  if (nrow(tab1) == 0) {
-    stop("No Wells with target Rpp30 or Rpp30Shear and >thresh droplets detected.")
-  }
-
-  #  add dilution factor to tab1
-  tab1 <- tab1 %>%
-    left_join(
-      grouped_data[!is.na(grouped_data$RPP30), ] %>%
-        select(`Sample description 1`, `Dilution Factor`),
-      by = "Sample description 1"
-    )
-
-  # compute concentration corrected by dilution factor
-  tab1 <- tab1 %>%
+compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_factor) {
+  # make some sanity checks
+  # concentration corrected by dilution factor
+  df <- df %>%
     mutate(
       `Concentration RPP30 (corrected by dilutionfactor) (copies/uL)` =
         `Dilution Factor` * `Conc(copies/uL)`
     )
 
   # compute mean concentrations (grouped by target and sample description)
-  tab1 <- tab1 %>%
-    group_by(Target, `Sample description 1`) %>%
+  df <- df %>%
+    group_by(group_id) %>%
+    # note: this is mean concentration for RPP30 and RPP30Shear individually
+    # RPP30 in name could be removed
     mutate(
       `Mean concentration RPP30 (corrected by dilutionfactor) (copies/uL)` =
         mean(`Concentration RPP30 (corrected by dilutionfactor) (copies/uL)`, na.rm = TRUE)
@@ -51,7 +33,7 @@ create_household_table <- function(dtQC, grouped_data,
         sd(`Concentration RPP30 (corrected by dilutionfactor) (copies/uL)`, na.rm = TRUE)
     ) %>%
     ungroup() %>%
-    # compute mean concentration of PRR30(Shear) (grouped by sample description)
+    # compute mean concentration of PRR30 and RPP30Shear combined
     group_by(`Sample description 1`) %>%
     mutate(
       `Mean concentration RPP30 + RPP30Shear (copies/uL)` =
@@ -60,10 +42,10 @@ create_household_table <- function(dtQC, grouped_data,
     ungroup()
 
   # compute unsheared value
-  tab1$unsheared <- tab1$`Ch1+Ch2+` / (tab1$`Ch1+Ch2+` + (tab1$`Ch1+Ch2-` + tab1$`Ch1-Ch2+`) / 2)
+  df$unsheared <- df$`Ch1+Ch2+` / (df$`Ch1+Ch2+` + (df$`Ch1+Ch2-` + df$`Ch1-Ch2+`) / 2)
 
   # compute mean unsheared
-  tab1 <- tab1 %>%
+  df <- df %>%
     group_by(`Sample description 1`) %>%
     mutate(
       `Mean unsheared` =
@@ -76,78 +58,45 @@ create_household_table <- function(dtQC, grouped_data,
     ungroup()
   
   # Check if mean unsheared is 0 for some wells
-  if(any(tab1$`Mean unsheared` == 0)){
+  if(any(df$`Mean unsheared` == 0)){
     warning(paste0(
-      "Mean unsheared is 0 for Wells: ", paste(unique(tab1$Well[tab1$`Mean unsheared` == 0]), collapse = ", "),
+      "Mean unsheared is 0 for Wells: ", paste(unique(df$Well[df$`Mean unsheared` == 0]), collapse = ", "),
       ".
       Likely through all zeros for the Ch1+Ch2+ column in the input xlsx file. 
       The values will set to 1, i.e., no shearing correction will take place for
       the specified wells."
     ))
-    tab1$`Mean unsheared`[tab1$`Mean unsheared` == 0] = 1
+    df$`Mean unsheared`[df$`Mean unsheared` == 0] = 1
   }
 
   # compute shearing index
-  tab1$`Shearing index` <- 1 - tab1$`Mean unsheared`
+  df$`Shearing index` <- 1 - df$`Mean unsheared`
 
   # compute mean copies per well and mean cells per reaction
-  tab1$`Mean copies/well` <- mean_copies_factor *
-    tab1$`Mean concentration RPP30 + RPP30Shear (copies/uL)`
-  tab1$`Mean cells per reaction` <- mean_cells_per_reac_factor *
-    tab1$`Mean copies/well`
+  df$`Mean copies/well` <- mean_copies_factor *
+    df$`Mean concentration RPP30 + RPP30Shear (copies/uL)`
+  df$`Mean cells per reaction` <- mean_cells_per_reac_factor[df$`Sample description 1`] *
+    df$`Mean copies/well`
 
-  # add relevant information to grouped data
-  grouped_data <- grouped_data %>%
-    left_join(
-      tab1 %>% select(
-        `Sample description 1`,
-        `Mean concentration RPP30 + RPP30Shear (copies/uL)`,
-        `Mean unsheared`,
-        `Mean cells per reaction`,
-        `Shearing index`
-      ) %>%
-        distinct(),
-      by = "Sample description 1"
-    )
-
-
-  return(list(tab1, grouped_data))
+  return(df)
 }
 
 #' Define groups
-#'
-#' Define the groups of Well that are analysed together. This is based upon the
-#' columns "Sample description 1" and "Target". If they are the same for two
-#' wells, they will be analysed together.
-#' @param dtQC The data frame created in the Readers/read_files function.
-#' @param dilution_factor The dilution factor will be applied to the concentration
-#' to correct for dilution during the experiment.
-#' @import dplyr
-#' @return grouped_data data frame, with basic information to each found group.
-#' @export
-define_groups <- function(dtQC, dilution_factor) {
-  # make one column per Well
-  transformed_data <- dtQC[, c("Well", "Sample description 1", "Target")] %>%
-    tidyr::pivot_wider(names_from = Target, values_from = Target)
-  # find wells with same sample description and targets
-  grouped_data <- transformed_data %>%
-    group_by(across(names(transformed_data)[2:ncol(transformed_data)])) %>%
-    summarise(shared_Wells = paste(Well, collapse = ", "), .groups = "drop")
-
-  # check if rpp30 and rpp30shear appear always together
-  if (any(xor(is.na(grouped_data$RPP30), is.na(grouped_data$RPP30Shear)))) {
-    stop("Wells with targets RPP30 and RPP30Shear do not match. Please check
-         again. If this is expected behaviour, please contact Mark :)")
-  }
-  # add the dilution factor if specified
-  if (is_named_vector(dilution_factor)) {
-    grouped_data <- add_dilution_factor(grouped_data, dilution_factor)
-  } else {
-    warning("No dilution factor has been specified or not as named vector.
-            Using dilution factor 1 for all samples.")
-    grouped_data$`Dilution Factor` <- 1
-  }
-  return(grouped_data)
+# best: names list -> Wells to group_ID
+# function returns list with Wells as names and group_ID as values
+library(dplyr)
+get_group_id <- function(dtQC){
+  summary_df <- dtQC[, c("Well", "Sample description 1", "Target")] %>%
+    group_by(Well) %>%
+    summarise(
+      description = first(`Sample description 1`),
+      Target_set = paste(sort(unique(Target)), collapse = "|"),
+      .groups = "drop"
+    )
+  id_df <- summary_df %>%
+    group_by(description, Target_set) %>%
+    mutate(group_id = cur_group_id())
+  return(tibble::deframe(id_df[,c("Well", "group_id")]))
 }
 
 #' Add dilution factor
@@ -168,7 +117,7 @@ add_dilution_factor <- function(df, dilution_factor) {
     }
     dilution_factor[unique(df$`Sample description 1`[!(df$`Sample description 1` %in% names(dilution_factor))])] <- 1
   }
-  # compute concentration
+  # add concentration
   df$`Dilution Factor` <- dilution_factor[df$`Sample description 1`]
 
   return(df)

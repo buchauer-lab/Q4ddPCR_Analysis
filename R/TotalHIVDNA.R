@@ -1,83 +1,58 @@
+# get column to use as shear-corrected quadrupel positives
+get_quad_pos <- function(df){
+  # find highest Psi Env multiple (quadrupel > EnvGagPsi > EnvPsiPol > EnvPsi > EnvGagPol > EnvGag)
+  # find name of column first
+  quad_order <- c("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Psi)(?=.*Env)(?=.*shearing)", # quad positive
+                  "^intact provirus/Mio cells(?=.*Gag)(?=.*Psi)(?=.*Env)(?!.*Pol)(?=.*shearing)", # Gag+Psi+Env+
+                  "^intact provirus/Mio cells(?=.*Pol)(?=.*Psi)(?=.*Env)(?!.*Gag)(?=.*shearing)", # Pol+Psi+Env+
+                  "^intact provirus/Mio cells(?=.*Psi)(?=.*Env)(?!.*Pol)(?!.*Gag)(?=.*shearing)", # Psi+Env+
+                  "^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Env)(?!.*Psi)(?=.*shearing)", # Pol+Gag+Env+
+                  "^intact provirus/Mio cells(?=.*Gag)(?=.*Env)(?!.*Psi)(?!.*Pol)(?=.*shearing)"  # Gag+Env+
+                  )
+  quad <- 0
+  for (comb in quad_order) {
+    name <- grep(comb,
+                 names(df),
+                 value = TRUE, perl = TRUE)
+    if(length(name) == 1){
+      quad <- na.omit(unique(df[[name]]))
+      if((length(quad) != 0) && (quad != 0))
+        break # found quad, leave for loop
+    }
+  }
+  return(quad)
+}
+
+# get values for triplet and doublet columns
+get_intact_multiplet_conc <- function(df, multiplet, substrings){
+  # get columns with n substrings
+  columns_with_n_substrings <- grep("^intact(?!.*shearing)", names(df)[sapply(names(df), function(name) {
+    # Count how many substrings are present in the column name
+    sum(sapply(substrings, grepl, name)) == multiplet
+  })], value = TRUE, perl = T)
+  # compute triplet sum
+  return(sum(apply(df[, columns_with_n_substrings], 2, unique), na.rm = T))
+}
+
 #' Compute total HIV content
 #'
 #' Compute the total HIV content as proposed by Rachel Scheck.
 #' @param df The data frame for whose column the total HIV content shall be computed
 #' @return Data frame df updated with new columns.
 compute_total_HIV <- function(df) {
-  # find highest Psi Env multiple (quadrupel > EnvGagPsi > EnvPsiPol > EnvPsi > EnvGagPol > EnvGag)
-  # find name of column first
-  name <- NULL
-  if (any(grep("\\+.*\\+.*\\+.*\\+", names(df)))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Psi)(?=.*Env)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  } else if (any(grep("(?=.*Env\\+)(?=.*Gag\\+)(?=.*Psi\\+)", names(df), perl = TRUE))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Psi)(?=.*Env)(?!.*Pol)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  } else if (any(grep("(?=.*Env\\+)(?=.*Psi\\+)(?=.*Pol\\+)", names(df), perl = TRUE))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Psi)(?=.*Env)(?!.*Gag)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  } else if (any(grep("(?=.*Env\\+)(?=.*Psi\\+)", names(df), perl = TRUE))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Psi)(?=.*Env)(?!.*Pol)(?!.*Gag)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  } else if (any(grep("(?=.*Env\\+)(?=.*Gag\\+)(?=.*Pol\\+)", names(df), perl = TRUE))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Pol)(?=.*Gag)(?=.*Env)(?!.*Psi)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  } else if (any(grep("(?=.*Env\\+)(?=.*Gag\\+)", names(df), perl = TRUE))) {
-    name <- grep("^intact provirus/Mio cells(?=.*Gag)(?=.*Env)(?!.*Psi)(?!.*Pol)(?=.*shearing)",
-      names(df),
-      value = TRUE, perl = TRUE
-    )
-  }
-  # then extract value
-  if (is.null(name)) {
-    quad <- 0
-  } else if(length(name) > 1){
-    stop("More than 1 column for Total HIV calculation selected.")
-  } else{
-    quad <- na.omit(unique(df[[name]]))
-    # check if length of value is correct
-    if(length(quad) == 0){
-      warning("Quadruple positives were all NA and are set to 0.")
-      quad <- 0
-    } else if (length(quad) > 1) {
-      stop("Bug: length of quad must be one. Please contact maintainer.")
-    }
-  }
-  substrings <- c("Env", "Gag", "Pol", "Psi")
-  # get columns with 3 substrings
-  columns_with_3_substrings <- grep("^intact(?!.*shearing)", names(df)[sapply(names(df), function(name) {
-    # Count how many substrings are present in the column name
-    sum(sapply(substrings, grepl, name)) == 3
-  })], value = TRUE, perl = T)
-  # compute triplet sum
-  trip <- sum(apply(df[, columns_with_3_substrings], 2, unique), na.rm = T)
+  # get value for quadruple positives
+  quad <- get_quad_pos(df)
 
-  # get columns with 2 substrings
-  columns_with_2_substrings <- grep("^intact(?!.*shearing)", names(df)[sapply(names(df), function(name) {
-    # Count how many substrings are present in the column name
-    sum(sapply(substrings, grepl, name)) == 2
-  })], value = TRUE, perl = T)
-  # compute triplet sum
-  doub <- sum(apply(df[, columns_with_2_substrings], 2, unique), na.rm = T)
+  substrings <- c("Env", "Gag", "Pol", "Psi") # TODO: get from data
 
+  # compute triplet sum
+  trip <- get_intact_multiplet_conc(df,  3, substrings)
+  # compute doublet sum
+  doub <- get_intact_multiplet_conc(df,  2, substrings)
   # compute for singlets
-  # old and wrong: sing <- sum(df[["Mean Target/Mio cells"]]) / 4
-  # new:
-  sing <- sum(unique(df[["Mean Target/Mio cells"]]))
-
+  sing <- sum(df[["Mean Target/Mio cells"]])/length(unique(df$Well)) # as mean is taken for each target over all Wells: divide by number of Wells
   # Compute total HIV DNA / Mio cells
-  df[["total HIV DNA/Mio cells"]] <- sing - doub + trip - quad
-  return(df)
+  return(sing - doub + trip - quad)
 }
 
 #' Compute total HIV content
@@ -95,17 +70,18 @@ compute_total_HIV_envPsi <- function(df) {
   # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
   env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
   psi <- unique(df[grepl("Psi", df$Target), "Mean Target/Mio cells"])
-  if(!any(c("intact provirus/Mio cells Psi.Env, corrected for shearing",
-            "intact provirus/Mio cells Env.Psi, corrected for shearing") 
-          %in% names(df))){
+  
+  # get column name with Env+Psi+
+  name <- grep("^intact provirus/Mio cells(?=.*Psi)(?=.*Env)(?!.*Pol)(?!.*Gag)(?=.*shearing)",
+               names(df),
+               value = TRUE, perl = TRUE)
+  if(length(name) == 0){
     warning("No Env+Psi+ detected. Will use 0.")
     envpsi <- 0
   } else{
-    envpsi <- unique(na.omit(df$`intact provirus/Mio cells Psi.Env, corrected for shearing`))
-    if(is.null(envpsi)){
-      envpsi <- unique(na.omit(df$`intact provirus/Mio cells Env.Psi, corrected for shearing`))
-    }
+    envpsi <- unique(na.omit(df[[name]]))
   }
-  df[["total HIV DNA/Mio cells (Env.Psi)"]] <- unlist(unname(env + psi - envpsi))
-  return(df)
+  
+  # return "total HIV DNA/Mio cells (Env.Psi)"
+  return(unlist(unname(env + psi - envpsi)))
 }
