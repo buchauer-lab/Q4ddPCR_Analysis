@@ -20,7 +20,7 @@ dtQC <- sufficient_droplets(dtQC, threshold)
 dtQC <- add_dilution_factor(dtQC, dilution_factor)
 
 # revise this, but keep at this position
-if(!all(unique(tab$`Sample description 1`) %in% names(tar_mio_factor))){
+if(!all(unique(dtQC$`Sample description 1`) %in% names(tar_mio_factor))){
   warning("Set tar_mio to 1")
   # TODO: do
 }

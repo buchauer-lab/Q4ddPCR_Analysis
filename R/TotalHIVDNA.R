@@ -14,12 +14,14 @@ get_quad_pos <- function(df){
     name <- grep(comb,
                  names(df),
                  value = TRUE, perl = TRUE)
+    print(name)
     if(length(name) == 1){
       quad <- na.omit(unique(df[[name]]))
       if((length(quad) != 0) && (quad != 0))
         break # found quad, leave for loop
     }
   }
+  print(quad)
   return(quad)
 }
 
@@ -41,6 +43,7 @@ get_intact_multiplet_conc <- function(df, multiplet, substrings){
 #' @return Data frame df updated with new columns.
 compute_total_HIV <- function(df) {
   # get value for quadruple positives
+  print(unique(df$Well))
   quad <- get_quad_pos(df)
 
   substrings <- c("Env", "Gag", "Pol", "Psi") # TODO: get from data
@@ -52,6 +55,9 @@ compute_total_HIV <- function(df) {
   # compute for singlets
   sing <- sum(df[["Mean Target/Mio cells"]])/length(unique(df$Well)) # as mean is taken for each target over all Wells: divide by number of Wells
   # Compute total HIV DNA / Mio cells
+  print(sing)
+  print(doub)
+  print(trip)
   return(sing - doub + trip - quad)
 }
 

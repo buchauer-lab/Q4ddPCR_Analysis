@@ -41,7 +41,7 @@ read_csv <- function(filename, csv_skip) {
 
   # read csv
   in_csv <- data.table::fread(filename, skip = csv_skip, fill = TRUE)
-
+  
   # remove second table
   if (is.null(in_csv$Well)) {
     stop("csv file must contain column Well.")
@@ -58,6 +58,7 @@ read_csv <- function(filename, csv_skip) {
   # remove empty column due to commas at end of file
   in_csv <- in_csv[, 1:(ncol(in_csv) - 1)]
 
+  
   # check if correct number of rows was read
   if (any(in_csv$Well == "Well")) {
     l <- 1 + length(in_csv$Well) - which(in_csv$Well == "Well")
@@ -65,8 +66,7 @@ read_csv <- function(filename, csv_skip) {
   }
 
   # remove empty columns if existing
-  in_csv <- in_csv[, !apply(is.na(in_csv), 2, all)]
-  
+  in_csv <- as.data.frame(in_csv)[, !apply(is.na(in_csv), 2, all)]
   # return
   return(in_csv)
 }
