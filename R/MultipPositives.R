@@ -36,7 +36,7 @@ get_multiplet_count <- function(df, genes){
 #' @param tar_mio_factor Factor to multiply Concentration with to obtain
 #'  Target/Mio cells
 #' @return Updated data frame (df)
-#' @keywords internal
+#' @export
 get_multi_pos <- function(df, genes, tar_mio_factor) {
   # check that genes are specified
   if (is.null(genes)) {
