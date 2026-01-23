@@ -13,5 +13,8 @@ compute_total_HIV(df)
 Data frame df updated with new columns.
 }
 \description{
-Compute the total HIV content as proposed by Rachel Scheck.
+Compute the total HIV content. If quadruple positive values are not found in the
+data, the following order of multiplets will be used until a substitute is found:
+(quadrupel > EnvGagPsi > EnvPsiPol > EnvPsi > EnvGagPol > EnvGag). For more information
+check the associated publication.
 }

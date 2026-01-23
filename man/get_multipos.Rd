@@ -4,14 +4,15 @@
 \alias{get_multipos}
 \title{Get multiple positive combinations}
 \usage{
-get_multipos(genes)
+get_multipos(targets)
 }
 \arguments{
-\item{genes}{List of genes used in the experiment.}
+\item{targets}{List of targets used in the experiment.}
 }
 \value{
-List of possible combinations
+List of possible combinations of input genes
 }
 \description{
-Compute the possible combinations of genes based on the genes in an experiment.
+Compute the possible combinations of targets (multiplets) based on the targets
+in the experiment.
 }

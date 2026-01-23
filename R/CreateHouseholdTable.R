@@ -4,7 +4,8 @@
 #' @param df data frame containing information on wells with RPP30 and RPP30Shear
 #' @param mean_copies_factor Number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well
 #' @param mean_cells_per_reac_factor Factor to multiply Mean copies/cell with to obtain Mean cells per reaction (named list)
-#' @import dplyr, tidyr
+#' @import dplyr
+#' @import tidyr
 #' @return Updated data frame
 #' @export
 compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_factor) {
@@ -83,7 +84,8 @@ compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_
 #' Define groups based on the same sample description and targets found in this well
 #' to analyse the group together.
 #' @param dtQC output from read_files
-#' @import dplyr, tidyr
+#' @import dplyr
+#' @import tidyr
 #' @return Named list mapping well to group
 get_group_id <- function(dtQC){
   summary_df <- dtQC[, c("Well", "Sample description 1", "Target")] %>%

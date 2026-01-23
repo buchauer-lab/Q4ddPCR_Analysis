@@ -31,7 +31,8 @@ merge_tables <- function(data_table, conf_mat, shear_table){
 #' This function computes the number of targets (genes) detected per million cells
 #' and the mean thereof within the wells of one group
 #' @param tab Output from merge_tables
-#' @import dplyr, tidyr
+#' @import dplyr
+#' @import tidyr
 #' @return Updated table
 #' @export
 compute_target_means <- function(tab){
@@ -81,7 +82,9 @@ get_multipos <- function(targets) {
 #' @param data_table dtQC subsetted for wells containing target
 #' @param ch_dye named list with used channels as names and respective dyes as values
 #' @param target_channel named list with Target (in_cs columns) as names and channels as values
-#' @import dplyr, tidyr, tibble
+#' @import dplyr
+#' @import tidyr
+#' @import tibble
 #' @return Confusion matrix
 #' @export
 create_confusion_matrix <- function(df, data_table, ch_dye, target_channel){
