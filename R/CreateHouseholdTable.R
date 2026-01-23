@@ -21,7 +21,7 @@ compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_
 
   # compute mean concentrations (grouped by target and sample description)
   df <- df %>%
-    group_by(group_id) %>%
+    group_by(group_id, Target) %>%
     # note: this is mean concentration for RPP30 and RPP30Shear individually
     # RPP30 in name could be removed
     mutate(
