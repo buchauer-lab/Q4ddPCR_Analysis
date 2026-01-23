@@ -18,3 +18,4 @@ List of data frames dtQC and in_csv without the defect channels.
 Remove wells for which at least one channel is defect, i.e., has
 concentration 0. Wells with H2O probes are not removed.
 }
+\keyword{internal}

@@ -19,3 +19,4 @@ Data frame with the relevant data.
 \description{
 Read the csv file of the input files within the specified rows.
 }
+\keyword{internal}

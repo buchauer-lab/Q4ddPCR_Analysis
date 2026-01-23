@@ -6,6 +6,7 @@
 #' @param filename Path to an existing xlsx file.
 #' @return Data frame with the contents of the xlsx file. NA values in
 #' concentration column are filled in with zeros.
+#' @keywords internal
 read_xlsx <- function(filename) {
   # check if file exists
   if (!file.exists(filename)) {
@@ -33,6 +34,7 @@ read_xlsx <- function(filename) {
 #' they are before the actual table. Otherwise reading the file will return an
 #' error due to column number mismatch in different rows.
 #' @return Data frame with the relevant data.
+#' @keywords internal
 read_csv <- function(filename, csv_skip) {
   # check if file exists
   if (!file.exists(filename)) {
@@ -79,6 +81,7 @@ read_csv <- function(filename, csv_skip) {
 #' output of reading the csv and the xlsx file each.
 #' @param channels Channels to remove (Well ID)
 #' @return Data frame without the specified channels
+#' @keywords internal
 rm_channels <- function(df, channels) {
   # check if df has Well column
   if (is.null(df$Well)) {
@@ -107,6 +110,7 @@ rm_channels <- function(df, channels) {
 #' @param acc_drop_factor Numeric factor by which the threshold is computed from
 #' the accepted droplets. (default=3)
 #' @return The dtQC dataframe with the relevant columns.
+#' @keywords internal
 create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3) {
   if (is.null(cols_of_int)) {
     cols_of_int <- c(
@@ -135,6 +139,7 @@ create_dtQC <- function(xlsx_df, cols_of_int = NULL, acc_drop_factor = 3) {
 #' @param dtQC Data frame created with create_dtQC.
 #' @param in_csv Data frame created with read_csv.
 #' @return List of data frames dtQC and in_csv without the defect channels.
+#' @keywords internal
 rm_zero_channel <- function(dtQC, in_csv) {
   # check if expected columns exist
   if (is.null(dtQC$`Conc(copies/uL)`)) {
@@ -202,75 +207,4 @@ read_files <- function(xlsx_file,
   } else {
     return(list(in_csv, dtQC))
   }
-}
-
-#' Read multiple files
-#'
-#' Read a list of input xlsx and csv files to create the initial tables for the analysis.
-#' @param xlsx_files Vector with paths to existing xlsx_files.
-#' @param csv_files Vector with paths to existing csv_files.
-#' @param csv_skip Number of lines in csv file that should not be read in, since
-#' they are before the actual table. Otherwise reading the file will return an
-#' error due to column number mismatch in different rows. Same in every file.
-#' @param remove_channel List of lists of channels that are to be removed. Will
-#' be processed in the same order as the csv and xlsx files. (optional)
-#' @param rm_zero_channels Boolean value to indicate whether defect channels,
-#' i.e., channels with zero concentration are to be removed. (optional)
-#' @export
-read_multiple_files <- function(xlsx_files,
-                                csv_files,
-                                csv_skip = 4,
-                                remove_channel = NULL,
-                                rm_zero_channels = FALSE) {
-  # check that files match
-  if (length(xlsx_files) != length(csv_files)) {
-    stop("There must be as many xlsx files as there are csv files.")
-  }
-
-  # lists to save outputs
-  all_csv <- list()
-  all_dtQC <- list()
-
-  # save names of data frames
-  csv_names <- list()
-  dtQC_names <- list()
-
-  # read each pair of files
-  for (i in 1:length(xlsx_files)) {
-    if (is.null(remove_channel)) {
-      tmp <- read_files(xlsx_files[i], csv_files[i], csv_skip, rm_zero_channels = rm_zero_channels)
-    } else {
-      tmp <- read_files(xlsx_files[i], csv_files[i], csv_skip,
-        remove_channel = remove_channel[i],
-        rm_zero_channels = rm_zero_channels
-      )
-    }
-
-    # get output
-    in_csv <- tmp[[1]]
-    dtQC <- tmp[[2]]
-
-    # Make wells unique by adding plate number
-    in_csv$Well <- paste0(in_csv$Well, "_", i)
-    dtQC$Well <- paste0(dtQC$Well, "_", i)
-
-    # save in lists
-    all_csv[[i]] <- in_csv
-    all_dtQC[[i]] <- dtQC
-
-    csv_names[[i]] <- colnames(in_csv)
-    dtQC_names[[i]] <- colnames(dtQC)
-  }
-  # check that all lists have the same names
-  if (!(all(sapply(csv_names, function(x) identical(x, csv_names[[1]]))))) {
-    stop("CSV files have different column names.")
-  }
-  if (!(all(sapply(dtQC_names, function(x) identical(x, dtQC_names[[1]]))))) {
-    stop("CSV files have different column names.")
-  }
-  # combine lists
-  final_csv <- do.call(rbind, all_csv)
-  final_dtQC <- do.call(rbind, all_dtQC)
-
-  return(list(final_csv, final_dtQC))
 }

@@ -21,3 +21,4 @@ The dtQC dataframe with the relevant columns.
 \description{
 Create the dtQC table, which contains the relevant content from the xlsx file.
 }
+\keyword{internal}

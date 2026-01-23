@@ -5,6 +5,7 @@
 #' @param df data_table
 #' @param genes list for which multiplets are computed for
 #' @return (Sum of) multiplet count
+#' @keywords internal
 get_multiplet_count <- function(df, genes){
   # create pattern to ask whether string contains all specified genes in arbitrary order
   pattern <- paste(paste0("(?=.*", genes, "\\+)"), collapse = "")
@@ -35,6 +36,7 @@ get_multiplet_count <- function(df, genes){
 #' @param tar_mio_factor Factor to multiply Concentration with to obtain
 #'  Target/Mio cells
 #' @return Updated data frame (df)
+#' @keywords internal
 get_multi_pos <- function(df, genes, tar_mio_factor) {
   # check that genes are specified
   if (is.null(genes)) {

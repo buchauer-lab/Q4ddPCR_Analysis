@@ -7,6 +7,7 @@
 #' @param multi_pos The possible multiple positives.
 #' @param grouped_data The grouped data obtained by define_groups().
 #' @return A named vector as blueprint for a xlsx sheet.
+#' @keywords internal
 get_output_sheet <- function(table, multi_pos, grouped_data) {
   # create output of single positives
   sample <- unique(table$`Sample description 1`)

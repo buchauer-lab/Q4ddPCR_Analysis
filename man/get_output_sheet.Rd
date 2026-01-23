@@ -19,3 +19,4 @@ A named vector as blueprint for a xlsx sheet.
 \description{
 Create an output sheet that collects the most important information.
 }
+\keyword{internal}

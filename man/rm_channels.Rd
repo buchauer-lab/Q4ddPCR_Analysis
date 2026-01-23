@@ -18,3 +18,4 @@ Data frame without the specified channels
 \description{
 Remove channels if they are not clean or irrelevant.
 }
+\keyword{internal}

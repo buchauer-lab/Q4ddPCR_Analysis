@@ -18,3 +18,4 @@ get_multiplet_count(df, genes)
 This function identifies the column name(s) of a multiplet based on a target 
 list and returns the column values or the sum thereof
 }
+\keyword{internal}
