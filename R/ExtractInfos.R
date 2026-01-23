@@ -1,4 +1,14 @@
-# this is the beginning of the create_table function (maybe can be done for all at once)
+#' Merging information of both input files
+#'
+#' This function creates one table based on the two input files: in_xlsx (as dtQC
+#' or data_table in tutorial) and in_csv (as confusion matrix in tutorial).
+#' Merging is based on wells, information from shearing table will be added.
+#' @param data_table Information coming from in_xlsx file, wells with targets only
+#' @param conf_mat Output from create_confusion_matrix
+#' @param shear_table Output from compute_shearing_factor
+#' @import tibble
+#' @return Combined table, conserving all information
+#' @export
 merge_tables <- function(data_table, conf_mat, shear_table){
   tab <- merge(data_table, conf_mat, by = "Well", all = T)
   tab <- Filter(function(x) !all(is.na(x)), tab)
@@ -16,6 +26,14 @@ merge_tables <- function(data_table, conf_mat, shear_table){
   return(tab)
 }
 
+#' Compute target mean
+#'
+#' This function computes the number of targets (genes) detected per million cells
+#' and the mean thereof within the wells of one group
+#' @param tab Output from merge_tables
+#' @import dplyr, tidyr
+#' @return Updated table
+#' @export
 compute_target_means <- function(tab){
   # compute target per million cells
   tab <- tab %>%
@@ -35,16 +53,17 @@ compute_target_means <- function(tab){
 
 #' Get multiple positive combinations
 #'
-#' Compute the possible combinations of genes based on the genes in an experiment.
-#' @param genes List of genes used in the experiment.
-#' @return List of possible combinations
+#' Compute the possible combinations of targets (multiplets) based on the targets
+#' in the experiment.
+#' @param targets List of targets used in the experiment.
+#' @return List of possible combinations of input genes
 #' @export
-get_multipos <- function(genes) {
+get_multipos <- function(targets) {
   multi_pos <- list()
 
-  for (i in 2:length(genes)) {
+  for (i in 2:length(targets)) {
     # Get the combinations of length i
-    comb <- combn(genes, i, simplify = FALSE)
+    comb <- combn(targets, i, simplify = FALSE)
     # Append the combinations to the list
     multi_pos <- c(multi_pos, comb)
   }
@@ -54,7 +73,17 @@ get_multipos <- function(genes) {
 
 
 
-
+#' Create a confusion matrix
+#'
+#' Create a confusion matrix showing which targets and multiplets (combination of
+#' targets) are found in which wells
+#' @param df in_csv subsetted for wells containing targets
+#' @param data_table dtQC subsetted for wells containing target
+#' @param ch_dye named list with used channels as names and respective dyes as values
+#' @param target_channel named list with Target (in_cs columns) as names and channels as values
+#' @import dplyr, tidyr, tibble
+#' @return Confusion matrix
+#' @export
 create_confusion_matrix <- function(df, data_table, ch_dye, target_channel){
   # df is in_csv subsetted for data wells
   

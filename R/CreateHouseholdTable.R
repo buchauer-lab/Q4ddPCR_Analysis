@@ -1,14 +1,11 @@
 #' Create RPP30 table
 #'
 #' Create the RPP30 table to compute Shearing factor and mean RPP30(Shear) concentration.
-#' @param dtQC The data frame created in the Readers/read_files function.
-#' @param grouped_data Data frame created in define_groups function.
-#' @param thresh Minimum number of accepted droplets to include the well in the calculations.
-#' Other wise it will be removed during the process.
-#' @param mean_copies_factor Number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well # I guess should be named volume
-#' @param mean_cells_per_reac_factor Factor to multiply Mean copies/cell with to obtain Mean cells per reaction
-#' @import dplyr
-#' @return List with two elements: data frame with information about RPP30(Shear) and an updated grouped_data.
+#' @param df data frame containing information on wells with RPP30 and RPP30Shear
+#' @param mean_copies_factor Number to multiply Mean concentration RPP30 + Shear with to compute mean copies/well
+#' @param mean_cells_per_reac_factor Factor to multiply Mean copies/cell with to obtain Mean cells per reaction (named list)
+#' @import dplyr, tidyr
+#' @return Updated data frame
 #' @export
 compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_factor) {
   # make some sanity checks
@@ -81,10 +78,13 @@ compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_
   return(df)
 }
 
-#' Define groups
-# best: names list -> Wells to group_ID
-# function returns list with Wells as names and group_ID as values
-library(dplyr)
+#' Define groups of well to analyse together
+#'
+#' Define groups based on the same sample description and targets found in this well
+#' to analyse the group together.
+#' @param dtQC output from read_files
+#' @import dplyr, tidyr
+#' @return Named list mapping well to group
 get_group_id <- function(dtQC){
   summary_df <- dtQC[, c("Well", "Sample description 1", "Target")] %>%
     group_by(Well) %>%
@@ -107,6 +107,7 @@ get_group_id <- function(dtQC){
 #' @param dilution_factor A named vector that matches sample description (name)
 #' with the used dilution factor (value).
 #' @return Data frame updated with dilution factor
+#' @export
 add_dilution_factor <- function(df, dilution_factor) {
   # check if specified dilution factors match table
   if (any(!(df$`Sample description 1` %in% names(dilution_factor)))) {
@@ -132,6 +133,7 @@ add_dilution_factor <- function(df, dilution_factor) {
 #' @param droplet_col The column containing the information about the accepted
 #' droplets (default: "Accepted Droplets")
 #' @return Data frame with Wells above the given threshold only.
+#' @export
 sufficient_droplets <- function(df, thresh, droplet_col = "Accepted Droplets") {
   if (any(df[, droplet_col] < thresh)) {
     warning(paste0(

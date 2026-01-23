@@ -1,4 +1,10 @@
-# get counts for a multiplet
+#' Get count for a multiplet
+#'
+#' This function identifies the column name(s) of a multiplet based on a target 
+#' list and returns the column values or the sum thereof
+#' @param df data_table
+#' @param genes list for which multiplets are computed for
+#' @return (Sum of) multiplet count
 get_multiplet_count <- function(df, genes){
   # create pattern to ask whether string contains all specified genes in arbitrary order
   pattern <- paste(paste0("(?=.*", genes, "\\+)"), collapse = "")
