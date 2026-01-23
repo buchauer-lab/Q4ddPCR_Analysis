@@ -46,19 +46,18 @@ get_output_sheet <- function(table, multi_pos, shear_table) {
 #' Write finished analysis to a xlsx file
 #' @param output_tables List of data frames. Output from create_tables().
 #' @param conf_mats The computed confusion matrices.
-#' @param tab1 Data frame created in create_household_table().
 #' @param output_file File name (path) of the output file.
 #' @param h2o_table Data frame with H2O samples created in create_tables().
 #' @param multi_pos The possible multiple positives.
 #' @param shear_table Output from compute_shearing_factor.
 #' @return No return value. Creates an xlsx file as output_file.
 #' @export
-write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table, multi_pos, shear_table) {
+write_output_file <- function(output_tables, conf_mats, output_file, h2o_table, multi_pos, shear_table) {
   l <- lapply(output_tables, get_output_sheet, multi_pos, shear_table)
   output_sheet <- do.call(rbind.data.frame, l)
 
   output_list <- append(list(output_sheet), output_tables)
-  output_list <- append(append(output_list, list(tab1)), h2o_table)
+  output_list <- append(append(output_list, list(shear_table)), h2o_table)
 
   openxlsx::write.xlsx(output_list, output_file)
 }

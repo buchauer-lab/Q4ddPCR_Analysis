@@ -7,7 +7,6 @@
 write_output_file(
   output_tables,
   conf_mats,
-  tab1,
   output_file,
   h2o_table,
   multi_pos,
@@ -18,8 +17,6 @@ write_output_file(
 \item{output_tables}{List of data frames. Output from create_tables().}
 
 \item{conf_mats}{The computed confusion matrices.}
-
-\item{tab1}{Data frame created in create_household_table().}
 
 \item{output_file}{File name (path) of the output file.}
 
