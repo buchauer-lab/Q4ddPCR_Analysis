@@ -87,6 +87,7 @@ compute_shearing_factor <- function(df, mean_copies_factor, mean_cells_per_reac_
 #' @import dplyr
 #' @import tidyr
 #' @return Named list mapping well to group
+#' @export
 get_group_id <- function(dtQC){
   summary_df <- dtQC[, c("Well", "Sample description 1", "Target")] %>%
     group_by(Well) %>%
