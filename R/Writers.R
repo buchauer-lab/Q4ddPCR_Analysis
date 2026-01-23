@@ -14,7 +14,7 @@ get_output_sheet <- function(table, multi_pos, shear_table) {
   output_sheet <- c(
     "Title" = paste(unique(table$Well), collapse = ", "),
     "Sample" = sample,
-    "Number of cells analysed" = pull(unique(round(shear_table[shear_table$`Sample description 1` == sample, "Mean cells per reaction"]))),
+    "Number of cells analysed" = unique(round(shear_table[shear_table$`Sample description 1` == sample, "Mean cells per reaction"])),
     "Shearing Index" = pull(unique(round(shear_table[shear_table$`Sample description 1` == sample, "Shearing index"], 2))),
     "Total HIV-DNA (4-based) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells"]])),
     "Total HIV-DNA (Env.Psi) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells (Env.Psi)"]])),
