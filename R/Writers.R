@@ -5,17 +5,17 @@
 #' Create an output sheet that collects the most important information.
 #' @param table Data frame computed in create_tables().
 #' @param multi_pos The possible multiple positives.
-#' @param grouped_data The grouped data obtained by define_groups().
+#' @param shear_table Output from compute_shearing_factor.
 #' @return A named vector as blueprint for a xlsx sheet.
 #' @keywords internal
-get_output_sheet <- function(table, multi_pos, grouped_data) {
+get_output_sheet <- function(table, multi_pos, shear_table) {
   # create output of single positives
   sample <- unique(table$`Sample description 1`)
   output_sheet <- c(
     "Title" = paste(unique(table$Well), collapse = ", "),
     "Sample" = sample,
-    "Number of cells analysed" = pull(unique(round(grouped_data[grouped_data$`Sample description 1` == sample, "Mean cells per reaction"]))),
-    "Shearing Index" = pull(unique(round(grouped_data[grouped_data$`Sample description 1` == sample, "Shearing index"], 2))),
+    "Number of cells analysed" = pull(unique(round(shear_table[shear_table$`Sample description 1` == sample, "Mean cells per reaction"]))),
+    "Shearing Index" = pull(unique(round(shear_table[shear_table$`Sample description 1` == sample, "Shearing index"], 2))),
     "Total HIV-DNA (4-based) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells"]])),
     "Total HIV-DNA (Env.Psi) (copies/Mio cells)" = round(unique(table[["total HIV DNA/Mio cells (Env.Psi)"]])),
     "Gag/Mio cells" = round(unique(table[grepl("Gag", table$Target), "Mean Target/Mio cells"])),
@@ -50,10 +50,11 @@ get_output_sheet <- function(table, multi_pos, grouped_data) {
 #' @param output_file File name (path) of the output file.
 #' @param h2o_table Data frame with H2O samples created in create_tables().
 #' @param multi_pos The possible multiple positives.
+#' @param shear_table Output from compute_shearing_factor.
 #' @return No return value. Creates an xlsx file as output_file.
 #' @export
-write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table, multi_pos) {
-  l <- lapply(output_tables, get_output_sheet, multi_pos, grouped_data)
+write_output_file <- function(output_tables, conf_mats, tab1, output_file, h2o_table, multi_pos, shear_table) {
+  l <- lapply(output_tables, get_output_sheet, multi_pos, shear_table)
   output_sheet <- do.call(rbind.data.frame, l)
 
   output_list <- append(list(output_sheet), output_tables)

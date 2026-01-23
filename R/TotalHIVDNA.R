@@ -20,14 +20,12 @@ get_quad_pos <- function(df){
     name <- grep(comb,
                  names(df),
                  value = TRUE, perl = TRUE)
-    print(name)
     if(length(name) == 1){
       quad <- na.omit(unique(df[[name]]))
       if((length(quad) != 0) && (quad != 0))
         break # found quad, leave for loop
     }
   }
-  print(quad)
   return(quad)
 }
 

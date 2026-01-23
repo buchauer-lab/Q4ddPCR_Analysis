@@ -4,14 +4,14 @@
 \alias{get_output_sheet}
 \title{Create analysis tables}
 \usage{
-get_output_sheet(table, multi_pos, grouped_data)
+get_output_sheet(table, multi_pos, shear_table)
 }
 \arguments{
 \item{table}{Data frame computed in create_tables().}
 
 \item{multi_pos}{The possible multiple positives.}
 
-\item{grouped_data}{The grouped data obtained by define_groups().}
+\item{shear_table}{Output from compute_shearing_factor.}
 }
 \value{
 A named vector as blueprint for a xlsx sheet.

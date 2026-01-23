@@ -10,7 +10,8 @@ write_output_file(
   tab1,
   output_file,
   h2o_table,
-  multi_pos
+  multi_pos,
+  shear_table
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ write_output_file(
 \item{h2o_table}{Data frame with H2O samples created in create_tables().}
 
 \item{multi_pos}{The possible multiple positives.}
+
+\item{shear_table}{Output from compute_shearing_factor.}
 }
 \value{
 No return value. Creates an xlsx file as output_file.
