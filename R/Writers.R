@@ -26,30 +26,15 @@ get_output_sheet <- function(table, multi_pos, grouped_data) {
     "Env-defective" = round(unique(table[grepl("Env", table$Target), "Mean Target/Mio cells"]) -
       unique(na.omit(table[["intact provirus/Mio cells Psi.Env, corrected for shearing"]])))
   )
+  
+  # save multiplets
+  out_names <- grep("^Intact concentration|^intact provirus/Mio cells", names(table), value=T)
+  out_names1 <- grep("^Intact concentration", names(table), value=T)
+  out_names2 <- grep("^intact provirus/Mio cells", names(table), value=T)
+  out_tab <- unique(cbind(round(table[,out_names1],2),round(table[,out_names2]))[,out_names])
+  out_list <- lapply(out_tab, function(col) unique(col[!is.na(col)]))
+  output_sheet <- c(output_sheet, out_list)
 
-  # loop over multiple positives and add to output
-  for (multip in multi_pos) {
-    name0 <- paste0("Intact concentration ", paste(multip, collapse = "."), " (copies/ul)")
-    name1 <- paste0("intact provirus/Mio cells ", paste(multip, collapse = "."))
-    name2 <- paste0(name1, ", corrected for shearing")
-
-    x0 <- round(unique(na.omit(table[[name0]])), 2)
-    x1 <- round(unique(na.omit(table[[name1]])))
-    x2 <- round(unique(na.omit(table[[name2]])))
-
-    output_sheet[[name0]] <- ifelse(length(x0) != 0,
-      x0,
-      NA
-    )
-    output_sheet[[name1]] <- ifelse(length(x1) != 0,
-      x1,
-      NA
-    )
-    output_sheet[[name2]] <- ifelse(length(x2) != 0,
-      x2,
-      NA
-    )
-  }
   return(output_sheet)
 }
 

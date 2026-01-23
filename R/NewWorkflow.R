@@ -1,5 +1,5 @@
 # ======= 0. define variables ==========
-library(MultiplexPCRAnalyser)
+#library(MultiplexPCRAnalyser)
 getwd()
 source("R/SetParameters.R")
 
@@ -38,9 +38,12 @@ dtQC$group_id <- group_ids[dtQC$Well]
 # split tables
 shear_table <- dtQC[dtQC$Well %in% shear_wells,]
 water_table <- dtQC[dtQC$Well %in% water_wells,]
+water_csv <- in_csv[in_csv$Well %in% water_wells,]
 data_table <- dtQC[dtQC$Well %in% data_wells,]
 data_csv <- in_csv[in_csv$Well %in% data_wells,]
 
+# remove Ch columns from data table
+data_table <- data_table[,grep("Ch", colnames(data_table), value=T, invert = T)]
 # ======= 3. do shearing computations ==========
 # should translate quickly
 shear_table <- compute_shearing_factor(shear_table, mean_copies_factor,
@@ -90,5 +93,17 @@ tab[["total HIV DNA/Mio cells (Env.Psi)"]] <- total_HIV_dict_envpsi[as.character
 ####################
 
 # also get information for H2O tables if necessary
+if(length(water_wells) > 0){
+  # create one (!) confusion matrix for the water table
+  h2o_conf_mat <- create_confusion_matrix(water_csv, water_table, ch_dye, target_channel) # add arguments
+  
+  # combine water tables
+  h2o_tab <- merge_tables(water_table, h2o_conf_mat, shear_table)
+  h2o_tab <- h2o_tab[,1:(ncol(h2o_tab)-2)]
+} else {
+  h2o_tab <- NULL
+}
 # ======= 5. output to xlsx file ==========
 # this might need some adaptations
+out_tables <- lapply(unique(tab$group_id), function(x){tab[tab$group_id == x,grep("group_id", names(tab), value=T, invert=T)]})
+write_output_file(out_tables, conf_mat, shear_table, output_file, h2o_tab, multi_positives)
