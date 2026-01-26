@@ -7,7 +7,8 @@ The package requires R verion 4.0 or higher. It is tested for R version 4.1.1 an
 
 The package, called "MultiplexPCRAnalyser", can be installed via
 
- ```devtools::install_github("buchauer-lab/Q4ddPCR_Analysis")```
+ ```devtools::install_github("buchauer-lab/Q4ddPCR_Analysis", build_vignettes = TRUE)```
 
+Please follow the vignette for instructions.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15791355.svg)](https://doi.org/10.5281/zenodo.15791355)
