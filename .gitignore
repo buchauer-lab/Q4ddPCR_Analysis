@@ -55,3 +55,4 @@ test/*.csv
 # further R files
 .DS_Store
 .Rbuildignore
+inst/doc

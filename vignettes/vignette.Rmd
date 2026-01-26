@@ -1,0 +1,228 @@
+---
+title: "vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(MultiplexPCRAnalyser)
+```
+
+## Introduction
+
+This vignette demonstrates a complete analysis workflow using the
+**MultiplexPCRAnalyser** package. While the workflow is an updated version of the original publication, it was still developed for Q4ddPCR analysis following the workflow given in this vignette. More specifically the code is written for a 4-target approach and is not generalized for a different number of targets (which could be done). Most importantly, the package depends on the column names within the input files as seen in this example. Also, it is dependent that the last three letters of the Target values in the xlsx input file contain the Target itself, for example 'SilicanoPsi' or 'q4Gag', where Psi and Gag are at the end.
+
+All parameters used in this vignette are assumed to be defined in a separate
+parameter file (`set_parameters.R`). Keeping it that way enables reproducibilty by having one parameter set per experiment. Please have a look in vignettes/set_parameter.R for further comments.
+
+## Load parameters
+
+```{r load-parameters}
+source("set_parameters.R")
+# add a custom output file directory. this can be done within set_parameters.R as well
+output_file <- "~/output_example.xlsx"
+```
+
+## Read input files
+
+The analysis uses an Excel file and a CSV file as input. The `read_files()`
+function returns a subset of the CSV data and the xlsx table (dtQC, where the name is somewhat historically).
+
+```{r read-files}
+information <- read_files(
+  xlsx_file,
+  csv_file,
+  csv_skip,
+  remove_channel,
+  rm_zero_channel_wells
+)
+
+in_csv <- information[[1]]
+dtQC   <- information[[2]]
+```
+
+## Quality control and preprocessing
+
+Basic quality control steps are applied before downstream analysis.
+
+```{r qc-checks}
+dtQC <- sufficient_droplets(dtQC, threshold)
+dtQC <- add_dilution_factor(dtQC, dilution_factor)
+```
+
+We ensure that all sample descriptions are represented in the `tar_mio_factor` object.
+
+```{r tar-mio-check}
+if (!all(unique(dtQC$`Sample description 1`) %in% names(tar_mio_factor))) {
+  warning("Set tar_mio_factor to 1")
+  s_desc <- unique(dtQC$`Sample description 1`)
+  tar_mio_factor <- setNames(rep(1, length(s_desc)), s_desc)
+}
+```
+
+## Split wells and tables
+
+Wells are split into shearing controls (RPP30, RPP30Shear), water controls, and experimental data based on their targets.
+
+```{r split-wells}
+shear_wells <- unique(dtQC[dtQC$Target %in% shear_name, "Well"])
+water_wells <- unique(dtQC[dtQC$Target %in% water_name, "Well"])
+data_wells  <- setdiff(unique(dtQC$Well), union(shear_wells, water_wells))
+```
+
+Group identifiers are added to each well based on sample description and target combinations.
+
+```{r group-ids}
+group_ids <- get_group_id(dtQC)
+dtQC$group_id <- group_ids[dtQC$Well]
+```
+
+The data is split into shearing controls, water controls, and experimental data.
+
+```{r split-tables}
+shear_table <- dtQC[dtQC$Well %in% shear_wells, ]
+water_table <- dtQC[dtQC$Well %in% water_wells, ]
+water_csv   <- in_csv[in_csv$Well %in% water_wells, ]
+
+data_table  <- dtQC[dtQC$Well %in% data_wells, ]
+data_csv    <- in_csv[in_csv$Well %in% data_wells, ]
+```
+
+Channel-specific columns are removed from the experimental data table. They are not used downstream and can be found in the input data.
+
+```{r remove-channel-columns}
+data_table <- data_table[
+  , grep("Ch", colnames(data_table), value = TRUE, invert = TRUE)
+]
+```
+
+## Shearing factor computation
+
+Shearing factors are computed using the shearing control wells (i.e., with targets RPP30 and RPP30Shear).
+
+```{r shearing}
+shear_table <- compute_shearing_factor(
+  shear_table,
+  mean_copies_factor,
+  mean_cells_per_reac_factor
+)
+```
+
+## Main table computations
+
+A single confusion matrix is created for the experimental data, showing which gene targets or combinations thereof are positive in each well.
+
+```{r confusion-matrix}
+conf_mat <- create_confusion_matrix(
+  data_csv,
+  data_table,
+  ch_dye,
+  target_channel
+)
+```
+
+The experimental data, confusion matrix, and shearing information are merged
+into one table.
+
+```{r merge-tables}
+tab <- merge_tables(data_table, conf_mat, shear_table)
+```
+
+Mean values are computed per target.
+
+```{r target-means}
+tab <- compute_target_means(tab)
+```
+
+## Multi-positive analysis
+
+Multi-positive target combinations (doublets, triplets, quadruplets) are identified and quantified.
+
+```{r multipos-loop}
+for (multip in multi_positives) {
+  tab <- get_multi_pos(tab, multip, tar_mio_factor)
+}
+```
+
+## Total HIV quantification
+
+Total HIV DNA per million cells is computed per group.
+
+```{r total-hiv}
+total_HIV_dict <- setNames(
+  unlist(lapply(unique(tab$group_id), function(x) {
+    compute_total_HIV(tab[tab$group_id == x, ])
+  })),
+  unique(tab$group_id)
+)
+
+tab[["total HIV DNA/Mio cells"]] <-
+  total_HIV_dict[as.character(tab$group_id)]
+```
+
+An alternative total HIV estimate based on Env/Psi is also calculated.
+
+```{r total-hiv-envpsi}
+total_HIV_dict_envpsi <- setNames(
+  unlist(lapply(unique(tab$group_id), function(x) {
+    compute_total_HIV_envPsi(tab[tab$group_id == x, ])
+  })),
+  unique(tab$group_id)
+)
+
+tab[["total HIV DNA/Mio cells (Env.Psi)"]] <-
+  total_HIV_dict_envpsi[as.character(tab$group_id)]
+```
+
+## Water control analysis
+
+If water control wells are present, they are processed separately.
+
+```{r water-controls}
+if (length(water_wells) > 0) {
+  h2o_conf_mat <- create_confusion_matrix(
+    water_csv,
+    water_table,
+    ch_dye,
+    target_channel
+  )
+
+  h2o_tab <- merge_tables(water_table, h2o_conf_mat, shear_table)
+  h2o_tab <- h2o_tab[, 1:(ncol(h2o_tab) - 2)]
+} else {
+  h2o_tab <- NULL
+}
+```
+
+## Output generation
+
+Results are written to an Excel output file, split by group identifier.
+
+```{r output}
+out_tables <- lapply(unique(tab$group_id), function(x) {
+  tab[
+    tab$group_id == x,
+    grep("group_id", names(tab), value = TRUE, invert = TRUE)
+  ]
+})
+
+write_output_file(
+  out_tables,
+  conf_mat,
+  output_file,
+  h2o_tab,
+  multi_positives,
+  shear_table
+)
+```
