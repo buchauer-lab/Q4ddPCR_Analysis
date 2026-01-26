@@ -21,7 +21,7 @@ merge_tables <- function(data_table, conf_mat, shear_table){
     tab$`Mean unsheared` <- mean_unsheared[tab$`Sample description 1`]
   } else {
     # if not, stop procedure
-    stop("revise this")
+    stop("All sample descriptions in data_table must be present in shear_table.")
   }
   return(tab)
 }

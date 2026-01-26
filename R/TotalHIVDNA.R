@@ -84,7 +84,7 @@ compute_total_HIV_envPsi <- function(df) {
     stop("No Mean Target/Mio cells detected")
   }
   
-  # extract ENV, Psi, und EnvPsi concentration from df (per Mio cells)
+  # extract Env, Psi, und EnvPsi concentration from df (per Mio cells)
   env <- unique(df[grepl("Env", df$Target), "Mean Target/Mio cells"])
   psi <- unique(df[grepl("Psi", df$Target), "Mean Target/Mio cells"])
   
