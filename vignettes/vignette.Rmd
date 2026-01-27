@@ -24,14 +24,12 @@ This vignette demonstrates a complete analysis workflow using the
 **MultiplexPCRAnalyser** package. While the workflow is an updated version of the original publication, it was still developed for Q4ddPCR analysis following the workflow given in this vignette. More specifically the code is written for a 4-target approach and is not generalized for a different number of targets (which could be done). Most importantly, the package depends on the column names within the input files as seen in this example. Also, it is dependent that the last three letters of the Target values in the xlsx input file contain the Target itself, for example 'SilicanoPsi' or 'q4Gag', where Psi and Gag are at the end.
 
 All parameters used in this vignette are assumed to be defined in a separate
-parameter file (`set_parameters.R`). Keeping it that way enables reproducibilty by having one parameter set per experiment. Please have a look in vignettes/set_parameter.R for further comments.
+parameter file (`set_parameters.R`). Keeping it that way enables reproducibilty by having one parameter set per experiment. Please have a set_parameter.R for further comments. You can find the example file in the repository https://github.com/Gaebler-Lab/Q4ddPCR/tree/Q4ddPCR_v1.1.0. Please use set_parameter.R, and CSV-file.csv & Excel-file.xlsx as data input files. Make sure the file paths in set_paramteres.R are adapted according to your directory structure.
 
 ## Load parameters
 
 ```{r load-parameters}
 source("set_parameters.R")
-# add a custom output file directory. this can be done within set_parameters.R as well
-output_file <- "~/output_example.xlsx"
 ```
 
 ## Read input files
