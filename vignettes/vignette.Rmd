@@ -15,10 +15,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(MultiplexPCRAnalyser)
-```
-
 ## Introduction
 
 This vignette demonstrates a complete analysis workflow using the
@@ -30,6 +26,7 @@ parameter file (`set_parameters.R`). Keeping it that way enables reproducibilty 
 ## Load parameters
 
 ```{r load-parameters}
+library(MultiplexPCRAnalyser)
 source("set_parameters.R")
 ```
 
