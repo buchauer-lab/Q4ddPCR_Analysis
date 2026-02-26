@@ -11,4 +11,5 @@ The package, called "MultiplexPCRAnalyser", can be installed via
 
 Please follow the vignette for instructions ```vignette("vignette", package="MultiplexPCRAnalyser")```. The respective data and parameter file can be found at [https://github.com/Gaebler-Lab/Q4ddPCR/tree/Q4ddPCR_v1.1.0]. For version 1.0.0, please use set_parameter.R, and CSV-file.csv & Excel-file.xlsx as data input files. 
 
+If you use this package, please cite the corresponding publication: [https://doi.org/10.1038/s41467-026-69413-0]
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15791355.svg)](https://doi.org/10.5281/zenodo.15791355)
