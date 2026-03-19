@@ -61,9 +61,9 @@ We ensure that all sample descriptions are represented in the `tar_mio_factor` o
 
 ```{r tar-mio-check}
 if (!all(unique(dtQC$`Sample description 1`) %in% names(tar_mio_factor))) {
-  warning("Set tar_mio_factor to 1")
   s_desc <- unique(dtQC$`Sample description 1`)
-  tar_mio_factor <- setNames(rep(1, length(s_desc)), s_desc)
+  warning(paste0("Set tar_mio_factor to 1 for samples ", setdiff(s_desc, names(tar_mio_factor))))
+  tar_mio_factor[setdiff(s_desc, names(tar_mio_factor))] <- 1
 }
 ```
 
