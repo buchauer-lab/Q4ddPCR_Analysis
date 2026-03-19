@@ -166,7 +166,7 @@ rm_zero_channel <- function(dtQC, in_csv) {
   in_csv <- in_csv[!(in_csv$Well %in% zero_ch), ]
 
   # return
-  return(list(dtQC, in_csv))
+  return(list(in_csv, dtQC))
 }
 
 #' Read files
