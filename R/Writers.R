@@ -57,7 +57,7 @@ write_output_file <- function(output_tables, conf_mats, output_file, h2o_table, 
   output_sheet <- do.call(rbind.data.frame, l)
 
   output_list <- append(list(output_sheet), output_tables)
-  output_list <- append(append(output_list, list(shear_table)), h2o_table)
+  output_list <- append(append(output_list, list(shear_table)), list(h2o_table))
 
   openxlsx::write.xlsx(output_list, output_file)
 }
