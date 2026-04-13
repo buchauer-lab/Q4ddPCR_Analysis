@@ -12,6 +12,11 @@
 merge_tables <- function(data_table, conf_mat, shear_table){
   tab <- merge(data_table, conf_mat, by = "Well", all = T)
   tab <- Filter(function(x) !all(is.na(x)), tab)
+
+  # return if water table
+  if (unique(tab$`Sample description 1`) %in% water_name){
+    return(tab)
+  }
   
   # add mean RPP concentration and mean unsheared to table
   if (all(unique(tab$`Sample description 1`) %in% shear_table$`Sample description 1`)) {
