@@ -72,9 +72,9 @@ if (!all(unique(dtQC$`Sample description 1`) %in% names(tar_mio_factor))) {
 Wells are split into shearing controls (RPP30, RPP30Shear), water controls, and experimental data based on their targets.
 
 ```{r split-wells}
-shear_wells <- unique(dtQC[dtQC$Target %in% shear_name, "Well"])
-water_wells <- unique(dtQC[dtQC$Target %in% water_name, "Well"])
-data_wells  <- setdiff(unique(dtQC$Well), union(shear_wells, water_wells))
+water_wells <- unique(dtQC[dtQC$`Sample description 1` %in% water_name ,"Well"])
+shear_wells <- setdiff(unique(dtQC[dtQC$Target %in% shear_name,"Well"]), water_wells)
+data_wells <- setdiff(unique(dtQC$Well), union(shear_wells, water_wells))
 ```
 
 Group identifiers are added to each well based on sample description and target combinations.
