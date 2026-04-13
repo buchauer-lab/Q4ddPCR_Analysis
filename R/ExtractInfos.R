@@ -14,7 +14,7 @@ merge_tables <- function(data_table, conf_mat, shear_table){
   tab <- Filter(function(x) !all(is.na(x)), tab)
 
   # return if water table
-  if (unique(tab$`Sample description 1`) %in% water_name){
+  if (water_name %in% unique(tab$`Sample description 1`)){
     return(tab)
   }
   
